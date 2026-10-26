@@ -3,9 +3,10 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"go": "node --experimental-strip-types Scripts/go.ts"
+		"go": "biome check --write Scripts && node --experimental-strip-types Scripts/go.ts"
 	},
 	"devDependencies": {
+		"@biomejs/biome": "2.6.3",
 		"@types/node": "^26.6.5"
 	}
 }

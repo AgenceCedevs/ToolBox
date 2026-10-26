@@ -26,28 +26,54 @@ const genererSommaire = (): string => {
 		.map((chemin) => relative(dossierDocs, chemin).split(sep).join("/"))
 		.sort((a, b) => a.localeCompare(b, "fr"));
 
-	const groupes = new Map<string, string[]>();
-	for (const fichier of fichiers) {
-		const dossier: string = fichier.includes("/")
-			? fichier.slice(0, fichier.lastIndexOf("/"))
-			: "";
-		groupes.set(dossier, [...(groupes.get(dossier) ?? []), fichier]);
-	}
-
 	const lignes: string[] = ["# Sommaire", ""];
-	for (const [dossier, liste] of groupes) {
-		if (dossier !== "") lignes.push(`## ${dossier.replaceAll("/", " / ")}`, "");
-		for (const fichier of liste) {
-			const nom: string = (fichier.split("/").pop() ?? fichier)
-				.replace(/\.md$/, "")
-				.replace(/^#+/, "")
+
+	const ecrireListe = (prefixe: string, profondeur: number): void => {
+		const indentation: string = "  ".repeat(profondeur);
+		const enfants: string[] = fichiers
+			.filter((f) => f.startsWith(prefixe))
+			.map((f) => f.slice(prefixe.length));
+
+		const fichiersDirects: string[] = enfants.filter((f) => !f.includes("/"));
+		const sousDossiers: string[] = [
+			...new Set(
+				enfants
+					.filter((f) => f.includes("/"))
+					.map((f) => f.split("/")[0] ?? ""),
+			),
+		];
+
+		for (const nomFichier of fichiersDirects) {
+			const nom: string = nomFichier
+				.slice(0, -3)
+				.replaceAll("#", "")
 				.replaceAll("_", " ");
-			const lien: string = encodeURI(fichier).replaceAll("#", "%23");
-			lignes.push(`- [${nom}](${lien})`);
+			const lien: string = encodeURI(prefixe + nomFichier).replaceAll(
+				"#",
+				"%23",
+			);
+			lignes.push(`${indentation}- [${nom}](${lien})`);
 		}
+
+		for (const dossier of sousDossiers) {
+			lignes.push("", `${indentation}- **${dossier}**`);
+			ecrireListe(`${prefixe}${dossier}/`, profondeur + 1);
+		}
+	};
+
+	const dossiersRacine: string[] = [
+		...new Set(
+			fichiers.filter((f) => f.includes("/")).map((f) => f.split("/")[0] ?? ""),
+		),
+	];
+
+	for (const dossier of dossiersRacine) {
+		lignes.push(`## ${dossier}`, "");
+		ecrireListe(`${dossier}/`, 0);
 		lignes.push("");
 	}
-	return `${lignes.join("\n")}`;
+
+	return lignes.join(String.fromCharCode(10));
 };
 
 const prochainNumero = (): number => {
