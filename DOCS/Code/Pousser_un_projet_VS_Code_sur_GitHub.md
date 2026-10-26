@@ -44,7 +44,7 @@ Remplacer l'URL par celle du dépôt GitHub :
 
 ```bash
 git branch -M main
-git remote add origin https://github.com/TON-PSEUDO/TON-REPO.git
+git remote add origin https://github.com/AgenceCedevs/ToolBox.git
 git push -u origin main
 ```
 

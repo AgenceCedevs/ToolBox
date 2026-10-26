@@ -1,0 +1,11 @@
+{
+	"name": "toolbox",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"go": "node --experimental-strip-types Scripts/go.ts"
+	},
+	"devDependencies": {
+		"@types/node": "^26.6.5"
+	}
+}
