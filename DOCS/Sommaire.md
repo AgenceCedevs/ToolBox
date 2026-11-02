@@ -1,5 +1,9 @@
 # Sommaire
 
+## _private
+
+- [test private](_private/test_private.md)
+
 ## Code
 
 - [Pousser un projet VS Code sur GitHub](Code/Pousser_un_projet_VS_Code_sur_GitHub.md)
