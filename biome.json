@@ -7,7 +7,7 @@
 	},
 	"files": {
 		"ignoreUnknown": true,
-		"includes": ["**", "!**/*.md"]
+		"includes": ["**", "!**/*.md", "!**/DOCS/Code/Vs Code/Settings.json"]
 	},
 	"formatter": {
 		"enabled": true,

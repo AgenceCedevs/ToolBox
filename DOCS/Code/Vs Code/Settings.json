@@ -1,0 +1,169 @@
+{
+	// ========== APPARENCE ==========
+	"workbench.colorTheme": "Visual Studio Dark",
+	"workbench.startupEditor": "none",
+	"workbench.tree.indent": 25,
+	"workbench.list.smoothScrolling": true,
+	"workbench.iconTheme": "vscode-icons",
+	"editor.minimap.enabled": false,
+	"breadcrumbs.enabled": true,
+
+	// ========== ÉDITEUR ==========
+	"editor.wordWrap": "on",
+	"editor.wordWrapColumn": 200,
+	"editor.cursorSmoothCaretAnimation": "on",
+	"editor.linkedEditing": true,
+	"editor.suggest.insertMode": "replace",
+	"editor.bracketPairColorization.enabled": true,
+	"editor.guides.bracketPairs": "active",
+	"editor.stickyScroll.enabled": true,
+	"editor.fontLigatures": true,
+	"editor.multiCursorModifier": "ctrlCmd",
+	"editor.inlayHints.enabled": "offUnlessPressed",
+	"editor.largeFileOptimizations": false,
+	"editor.defaultFormatter": "biomejs.biome",
+
+	// ========== FORMATAGE ==========
+	"editor.formatOnSave": true,
+	"editor.formatOnPaste": true,
+	"editor.formatOnType": true,
+	"editor.codeActionsOnSave": {
+		"source.organizeImports.biome": "always"
+	},
+
+	// ========== FICHIERS ==========
+	"files.autoSave": "onFocusChange",
+	"files.eol": "\n",
+	"files.trimTrailingWhitespace": true,
+	"files.insertFinalNewline": true,
+	"files.trimFinalNewlines": true,
+
+	// ========== EXPLORATEUR ==========
+	"explorer.confirmDragAndDrop": false,
+	"explorer.confirmDelete": false,
+
+	// ========== DIFFÉRENCES ==========
+	"diffEditor.ignoreTrimWhitespace": true,
+
+	// ========== JAVASCRIPT / TYPESCRIPT ==========
+	"js/ts.updateImportsOnFileMove.enabled": "always",
+	"js/ts.preferences.importModuleSpecifier": "non-relative",
+
+	// ========== EMMET ==========
+	"emmet.variables": {
+		"lang": "FR"
+	},
+	"emmet.triggerExpansionOnTab": true,
+
+	// ========== TERMINAL & GIT ==========
+	"terminal.integrated.suggest.enabled": true,
+	"terminal.integrated.initialHint": false,
+	"terminal.integrated.defaultProfile.windows": "Git Bash",
+	"git.enableSmartCommit": true,
+	"git.autofetch": true,
+	"git.confirmSync": false,
+	"git.ignoreRebaseWarning": true,
+
+	// ========== SCHÉMAS JSON & SÉCURITÉ ==========
+	"json.schemaDownload.trustedDomains": {
+		"https://schemastore.azurewebsites.net/": true,
+		"https://raw.githubusercontent.com/": true,
+		"https://www.schemastore.org/": true,
+		"https://json.schemastore.org/": true,
+		"https://json-schema.org/": true,
+		"https://biomejs.dev": true
+	},
+
+	// ========== BIOME ==========
+	"biome.suggestInstallingGlobally": false,
+
+	// ========== LIVE SERVER ==========
+	"liveServer.settings.CustomBrowser": "chrome",
+	"liveServer.settings.donotShowInfoMsg": true,
+
+	// ========== MARKDOWN ==========
+	"markdown.preview.typographer": true,
+	"markdown.preview.scrollPreviewWithEditor": false,
+	"markdown.styles": ["${workspaceFolder}/styles/Style_markdown.css"],
+	"markdown-pdf.displayHeaderFooter": false,
+	"markdown-pdf.printBackground": true,
+	"markdown-pdf.emoji": true,
+	"markdown-pdf.executablePath": "",
+	"markdown-pdf.quality": 100,
+	"markdown-pdf.scale": 1,
+	"markdown-pdf.margin.top": "1.5cm",
+	"markdown-pdf.margin.bottom": "1.5cm",
+	"markdown-pdf.margin.right": "1.5cm",
+	"markdown-pdf.margin.left": "1.5cm",
+
+	// ========== MARKDOWN LANGUAGE SPECIFIC ==========
+	"[markdown]": {
+		"editor.defaultFormatter": null,
+		"editor.formatOnSave": false,
+		"editor.formatOnPaste": false,
+		"editor.formatOnType": false,
+		"diffEditor.ignoreTrimWhitespace": false
+	},
+	// ========== PDF VIEWER ==========
+	"workbench.editor.autoLockGroups": {
+		"pdf.view": true
+	},
+
+	// ========== VS CODE ICONS ==========
+	"vsicons.dontShowNewVersionMessage": true,
+
+	// ========== AUTO RENAME TAG ==========
+
+	// ========== COLORIZE ==========
+
+	// ========== FOLDER MAPPER ==========
+
+	// ========== FRENCH LANGUAGE PACK ==========
+
+	// ========== LIVE SHARE ==========
+
+	// ========== PATH INTELLISENSE ==========
+	"path-intellisense.autoTriggerNextSuggestion": true,
+	"path-intellisense.extensionOnImport": true,
+	"path-intellisense.showHiddenFiles": true,
+	"path-intellisense.absolutePathPrefix": "/",
+
+	"pathAutocomplete.pathMappings": {
+		"/": "${workspaceFolder}/public"
+	},
+	"pathAutocomplete.triggerOutsideStrings": true,
+	"pathAutocomplete.showOnAbsolutePath": true,
+
+	// ========== POSTGRESQL ==========
+
+	// ========== WEB SEARCH ==========
+
+	// ========== YAML ==========
+	"yaml.schemas": {
+		"https://json.schemastore.org/github-workflow.json": "/.github/workflows/*.yaml"
+	},
+	"yaml.enable": true,
+	"yaml.validate": true,
+	"yaml.format.enable": true,
+	"yaml.format.singleQuote": false,
+	"yaml.format.bracketSpacing": true,
+	"yaml.format.proseWrap": "preserve",
+	"workbench.secondarySideBar.defaultVisibility": "visible",
+	"chat.tools.terminal.autoApprove": {
+		"/^\\$j = Get-Content 'C:\\\\Users\\\\Cédric\\\\Desktop\\\\lighthouse-report-fixed\\.json' -Raw \\| ConvertFrom-Json; \\$c = \\$j\\.categories; \\$m = \\$j\\.audits\\.metrics\\.details\\.items\\[0\\]; Write-Host \"=== LIGHTHOUSE RESULTS ===\" -ForegroundColor Cyan; Write-Host \"Performance:     \" -NoNewline; Write-Host \"\\$\\(\\[math\\]::Round\\(\\$c\\.performance\\.score \\* 100\\)\\)/100\" -ForegroundColor Green; Write-Host \"Accessibility:   \" -NoNewline; Write-Host \"\\$\\(\\[math\\]::Round\\(\\$c\\.accessibility\\.score \\* 100\\)\\)/100\"; Write-Host \"Best Practices:  \" -NoNewline; Write-Host \"\\$\\(\\[math\\]::Round\\(\\$c\\.'best-practices'\\.score \\* 100\\)\\)/100\"; Write-Host \"SEO:             \" -NoNewline; Write-Host \"\\$\\(\\[math\\]::Round\\(\\$c\\.seo\\.score \\* 100\\)\\)/100\"; Write-Host \"\"; Write-Host \"=== METRICS ===\" -ForegroundColor Cyan; Write-Host \"FCP:             \\$\\(\\[math\\]::Round\\(\\$m\\.firstContentfulPaint / 1000, 1\\)\\)s\"; if \\(\\$m\\.largestContentfulPaint\\) \\{ Write-Host \"LCP:             \\$\\(\\[math\\]::Round\\(\\$m\\.largestContentfulPaint / 1000, 1\\)\\)s\" -ForegroundColor Green \\} else \\{ Write-Host \"LCP:             ❌ NO_LCP\" -ForegroundColor Red \\}; Write-Host \"CLS:             \\$\\(\\$m\\.cumulativeLayoutShift\\)\"; Write-Host \"Speed Index:     \\$\\(\\[math\\]::Round\\(\\$m\\.speedIndex / 1000, 1\\)\\)s\"$/": {
+			"approve": true,
+			"matchCommandLine": true
+		},
+		"npx biome": true
+	},
+	"github.copilot.enable": {
+		"*": true,
+		"plaintext": false,
+		"markdown": false,
+		"scminput": false,
+		"css": true
+	},
+	"workbench.browser.searchEngine": "google",
+	"security.workspace.trust.untrustedFiles": "open",
+	"diffEditor.maxComputationTime": 0
+}
