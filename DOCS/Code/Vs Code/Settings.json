@@ -96,6 +96,20 @@
 	"markdown-pdf.margin.right": "1.5cm",
 	"markdown-pdf.margin.left": "1.5cm",
 
+	// ========== HIGHLIGHT ==========
+	"highlight.regexes": {
+		"(<font color=red>)(.*?)(</font>)": [
+			{ "opacity": "0.25" },
+			{ "color": "red" },
+			{ "opacity": "0.25" }
+		],
+		"(<font color=yellow>)(.*?)(</font>)": [
+			{ "opacity": "0.25" },
+			{ "color": "yellow" },
+			{ "opacity": "0.25" }
+		]
+	},
+
 	// ========== MARKDOWN LANGUAGE SPECIFIC ==========
 	"[markdown]": {
 		"editor.defaultFormatter": null,
