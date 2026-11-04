@@ -3,11 +3,12 @@ Bienvenue dans l'univers des monorepos.
 
 Ces modules ont pour objectif de créer de zéro la structure complète d'un monorepo **Web & Mobile**. Un projet unique qui embarque à la fois une application web et une application mobile.
 
-Un monorepo est un seul dépôt qui contient à la fois le frontend (web/), le backend (server/), l'application mobile (mobile/) et les outils de configuration (setup/). Tout vit au même endroit, dans un seul dépôt GitHub. Le dossier shared/ sera introduit uniquement à l'étape du développement de l'application mobile.
+Un monorepo est un seul dépôt qui contient le frontend (web/), le backend (server/), l'application mobile (mobile/), les outils de configuration (setup/) et le package shared/ pour les constantes stables et les types communs. Les paramètres variables (nom de l'application, URL d'API, ports et identifiants) sont lus depuis les variables d'environnement propres à chaque application. Le package shared/ est un workspace npm relié à web/, server/ et mobile/.
 
 À la fin de ce module :
 
-- La structure web/, server/, mobile/ et setup/ est en place et cohérente.
+- La structure web/, server/, mobile/, shared/ et setup/ est en place et cohérente.
+- Le package @appstarter/shared est déclaré et relié aux trois applications par les workspaces npm.
 - Toutes les dépendances npm sont installées, aucun npm install supplémentaire n'est nécessaire avant le prochain module.
 - Les fichiers de configuration (Docker, Biome, TypeScript, variables d'environnement) sont présents et prêts.
 ## Les étapes
@@ -19,7 +20,7 @@ C'est normal et attendu ! À l'étape 36, un seul npm install à la racine insta
 <!-- ------------------------------------ -->
 ### 01 - racine > Ouvrir Git bash et créer le dossier du monorepo
 ⚠️ Attention
-Le nom du dossier racine devient automatiquement le nom de la base de données PostgreSQL et le nom de l'application dans setup/constants.ts. Il peut ensuite être référencé partout dans le monorepo via constants.APP_NAME. Il est préférable de choisir un nom sans espaces ni caractères spéciaux, ici appStarter.
+Le nom du dossier racine sert à initialiser PROJECT_NAME et le nom affiché de l'application dans les fichiers .env. Il est préférable de choisir un nom sans espaces ni caractères spéciaux, ici appStarter. Les applications lisent ces paramètres depuis leur environnement ; ils ne sont pas codés dans shared/src/constants.ts.
 
 ▷ Ouvrir Git bash, se placer dans le dossier ~/desktop/LOCAL où tous les projets sont stockés en local. Puis créer le dossier appStarter, y entrer et l'ouvrir immédiatement dans l'éditeur.
 
@@ -30,6 +31,7 @@ code .
 ```
 
 <!-- ------------------------------------ -->
+---
 ### 02 - racine > Initialiser npm et créer le fichier package.json
 Une fois l'éditeur ouvert, ouvrir le terminal intégré avec Ctrl+ù. Toutes les commandes suivantes sont à lancer depuis ce terminal intégré.
 
@@ -45,9 +47,11 @@ Wrote to ~/desktop/LOCAL/appStarter/package.json
 ```
 
 <!-- ------------------------------------ -->
+---
 ### 03 - racine > Ajouter les dépendances Concurrently et Biome
 - concurrently : Exécuter plusieurs scripts npm simultanément.
 - @biomejs/biome : Linter et formateur de code unifié.
+- typescript : Compiler le package shared/ en JavaScript et déclarations TypeScript.
 - @types/node : Types TypeScript pour Node.js.
 - script postinstall : Met à jour automatiquement le schéma Biome dans biome.json à la version installée.
 
@@ -56,11 +60,13 @@ Wrote to ~/desktop/LOCAL/appStarter/package.json
 ```bash
 npm pkg set devDependencies.concurrently="latest"
 npm pkg set devDependencies.@biomejs/biome="latest"
+npm pkg set devDependencies.typescript="latest"
 npm pkg set devDependencies.@types/node="latest"
 npm pkg set scripts.postinstall="node -e \"const v = require('@biomejs/biome/package.json').version; const fs = require('fs'); const c = JSON.parse(fs.readFileSync('biome.json')); c['\$schema'] = 'https://biomejs.dev/schemas/' + v + '/schema.json'; fs.writeFileSync('biome.json', JSON.stringify(c, null, 2))\""
 ```
 
 <!-- ------------------------------------ -->
+---
 ### 04 - racine > Créer le fichier de configuration biome.json
 Ce fichier configure Biome pour ignorer node_modules, formater avec des tabulations et des guillemets doubles, et activer les règles recommandées. Sans lui, Biome scanne node_modules et peut se bloquer.
 
@@ -82,6 +88,7 @@ require('fs').writeFileSync('biome.json', JSON.stringify({
 ```
 
 <!-- ------------------------------------ -->
+---
 ### 05 - racine > Créer tsconfig.json
 Les scripts dans setup/ sont en TypeScript et ont besoin d'un tsconfig.json racine.
 
@@ -102,50 +109,74 @@ node -e "require('fs').writeFileSync('tsconfig.json', JSON.stringify({
 ```
 
 <!-- ------------------------------------ -->
-### 06 - racine > Créer les dossiers web/ et mobile/
-▷ Créer les dossiers web/ et mobile/, puis initialiser npm dans chacun des workspaces.
+---
+### 06 - racine > Créer les dossiers web/, mobile/ et shared/
+▷ Créer les dossiers web/, mobile/ et shared/, puis initialiser les packages npm de ces workspaces. Le package partagé produit une version ESM pour Vite et une version CommonJS pour le serveur.
 
 ```bash
-mkdir -p web mobile
+mkdir -p web mobile shared/src
 cd web && npm init -y && cd ..
-cd mobile && npm init -y && cd ..
+cd mobile && npm init -y && npm pkg set dependencies.@appstarter/shared="*" && cd ..
+cd shared && npm init -y && npm pkg set name="@appstarter/shared" version="1.0.0" private=true type="module" main="./dist/cjs/index.js" module="./dist/esm/index.js" types="./dist/esm/index.d.ts" && cd ..
+node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('shared/package.json','utf8'));p.exports={'.':{types:'./dist/esm/index.d.ts',import:'./dist/esm/index.js',require:'./dist/cjs/index.js'}};fs.writeFileSync('shared/package.json',JSON.stringify(p,null,2))"
+node -e "const fs=require('fs');const base={target:'ES2020',strict:true,declaration:true,rootDir:'src'};fs.writeFileSync('shared/tsconfig.esm.json',JSON.stringify({compilerOptions:{...base,module:'ESNext',moduleResolution:'Bundler',outDir:'dist/esm'},include:['src/**/*']},null,2));fs.writeFileSync('shared/tsconfig.cjs.json',JSON.stringify({compilerOptions:{...base,module:'CommonJS',outDir:'dist/cjs'},include:['src/**/*']},null,2))"
+touch shared/write-build-metadata.cjs
+cd shared && npm pkg set scripts.build="tsc -p tsconfig.esm.json && tsc -p tsconfig.cjs.json && node write-build-metadata.cjs" && cd ..
+printf 'export { constants } from "./constants.js";\n' > shared/src/index.ts
+touch shared/src/constants.ts
+```
+Le fichier shared/src/index.ts est le point d'entrée public du package. Il réexporte les constantes stables et les types communs. Les fichiers package.json générés dans dist/ indiquent à Node quel format utiliser. Les imports applicatifs utiliseront `@appstarter/shared`, jamais un chemin relatif vers un autre workspace.
+
+▷ Ouvrir shared/write-build-metadata.cjs et coller le contenu suivant. Ce script marque les sorties compilées avec leur format de module, afin que Node et Vite les résolvent correctement.
+
+```javascript
+const fs = require("node:fs");
+
+for (const [format, type] of [["esm", "module"], ["cjs", "commonjs"]]) {
+	fs.writeFileSync(`dist/${format}/package.json`, JSON.stringify({ type }, null, 2));
+}
 ```
 
 <!-- ------------------------------------ -->
+---
 ### 07 - racine > Déclarer les workspaces npm
-Déclarer les workspaces npm, c'est la fondation du monorepo. Sans cela, il est impossible de créer un package shared/ de types communs entre web/, server/ et mobile/ plus tard.
+Déclarer les workspaces npm permet à npm de relier automatiquement le package shared/ aux applications locales, sans publier ni télécharger ce package depuis le registre npm.
 
-▷ Ajouter le champ workspaces au package.json racine listant web/, server/ et mobile/.
+▷ Ajouter le champ workspaces au package.json racine listant web/, server/, mobile/ et shared/.
 
 💡 Info
-Vérifier que la modification a bien été appliquée en ouvrant package.json : le champ "workspaces" doit contenir ["web", "server", "mobile"].
+Vérifier que la modification a bien été appliquée en ouvrant package.json : le champ "workspaces" doit contenir ["web", "server", "mobile", "shared"].
 
 ```bash
-node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.workspaces=['web','server','mobile'];fs.writeFileSync('package.json',JSON.stringify(pkg,null,2));"
+node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.workspaces=['web','server','mobile','shared'];fs.writeFileSync('package.json',JSON.stringify(pkg,null,2));"
 ```
 
 <!-- ------------------------------------ -->
+---
 ### 08 - racine > Ajouter les scripts npm
-Les scripts dev lancent les serveurs, les scripts lint, fix et format gèrent la qualité du code avec Biome.
+Les scripts de développement compilent d'abord shared/, puis lancent les applications. Les scripts lint, fix et format gèrent la qualité du code avec Biome.
 
 ▷ Ajouter les scripts dans le package.json racine.
 
 💡 Info
-- npm run dev : lance les deux processus en parallèle depuis la racine via les workspaces npm natifs.
+- npm run dev : compile shared/, puis lance les deux processus en parallèle depuis la racine via les workspaces npm natifs.
+- npm run build:shared : compile shared/ en JavaScript et génère ses déclarations TypeScript.
 - npm run fix : corrige les erreurs lint et formate en une seule commande, utile avant un commit.
 - npm run lint : signale les erreurs sans les corriger.
 - npm run format : formate uniquement, sans vérifier le lint.
 
 ```bash
-npm pkg set scripts.dev='concurrently "npm run dev -w web" "npm run dev -w server"'
-npm pkg set scripts.dev:web="npm run dev -w web"
-npm pkg set scripts.dev:server="npm run dev -w server"
+npm pkg set scripts.build:shared="npm run build -w shared"
+npm pkg set scripts.dev='npm run build:shared && concurrently "npm run dev -w web" "npm run dev -w server"'
+npm pkg set scripts.dev:web="npm run build:shared && npm run dev -w web"
+npm pkg set scripts.dev:server="npm run build:shared && npm run dev -w server"
 npm pkg set scripts.lint="biome lint ."
 npm pkg set scripts.fix="biome lint --write . && biome format --write ."
 npm pkg set scripts.format="biome format --write ."
 ```
 
 <!-- ------------------------------------ -->
+---
 ### 09 - racine > Créer settings.json pour VSCode
 Configurer l'éditeur pour appliquer Biome automatiquement à chaque sauvegarde.
 
@@ -184,8 +215,10 @@ fs.writeFileSync('.vscode/settings.json', JSON.stringify({
 ```
 
 <!-- ------------------------------------ -->
+---
 
 <!-- ------------------------------------ -->
+---
 ### 10 - racine > Configurer package.json en ES modules
 Les scripts dans setup/ utilisent la syntaxe import ES modules.
 
@@ -205,6 +238,7 @@ npm pkg delete scripts.test
 ```
 
 <!-- ------------------------------------ -->
+---
 ### 11 - racine > Créer .gitignore, .env.sample et .env
 - .gitignore indique à Git quels fichiers ne jamais envoyer sur GitHub.
 - .env.sample est un modèle de fichier .env ne contenant aucune donnée sensible. Les identifiants et mots de passe, comme la base de données ou la configuration locale, doivent être définis uniquement dans le fichier .env réel.
@@ -222,6 +256,7 @@ node -e "require('fs').copyFileSync('.env.sample', '.env')"
 Oublier de renseigner les vraies valeurs dans le fichier .env est problématique. L'application ne pourra pas se connecter correctement aux services comme la base de données et risque de ne pas fonctionner.
 
 <!-- ------------------------------------ -->
+---
 ### 12 - racine > Créer le fichier docker-compose.yml
 Le fichier docker-compose.yml contient des guillemets doubles qui ne peuvent pas être échappés proprement dans node -e sur le terminal.
 
@@ -232,6 +267,7 @@ touch docker-compose.yml
 ```
 
 <!-- ------------------------------------ -->
+---
 ### 13 - racine > Ajouter le contenu à docker-compose.yml
 ▷ Ouvrir le fichier docker-compose.yml et coller le contenu suivant.
 
@@ -268,6 +304,7 @@ volumes:
 ```
 
 <!-- ------------------------------------ -->
+---
 ### 14 - setup > Créer les dossiers et fichiers setup
 Les fichiers .ts sont créés avec touch et non via node -e.
 
@@ -277,7 +314,6 @@ Les fichiers .ts sont créés avec touch et non via node -e.
 mkdir -p setup/exports_writings
 mkdir -p setup/resources
 mkdir -p setup/verify_monorepo
-touch setup/constants.ts
 touch setup/update-package-name.ts
 touch setup/resources/resources.md
 touch setup/liveApp.ts
@@ -288,43 +324,44 @@ touch setup/exports_writings/export_writings_gitDiff.ts
 ```
 
 <!-- ------------------------------------ -->
-### 15 - setup > Remplir constants.ts
-Ce fichier centralise toutes les constantes partagées du monorepo. Les valeurs PENDING_FOLDER_NAME seront remplacées automatiquement par le script de l'étape 34.
+---
+### 15 - shared > Remplir constants.ts
+Ce fichier centralise uniquement les valeurs stables de l'application utilisées par web/, server/ et mobile/. Les paramètres qui peuvent varier selon le projet, l'environnement ou la plateforme (nom de l'application, URL d'API, ports, secrets, identifiants) doivent être lus depuis les variables d'environnement de chaque application, pas ajoutés ici. Le package partagé est compilé à l'étape 36, et ses exports sont accessibles avec `@appstarter/shared`.
 
-▷ Ouvrir le fichier setup/constants.ts et coller le contenu suivant.
+▷ Ouvrir le fichier shared/src/constants.ts et coller le contenu suivant.
 
 
 ```typescript
- // import { constants } from "../../../../setup/constants";
-  export const constants = {
-  ROOT_FOLDER_NAME: "PENDING_FOLDER_NAME",
-  APP_NAME: "PENDING_APP_NAME",
-  DEFAULT_USER_NAME: "utilisateur",
-  DEFAULT_AVATAR: "/images/avatar_profil.png",
-  ROUTE_HOME: "/",
-  ROUTE_LOGIN: "/login",
-  ROUTE_AUTH: "/auth",
-  ROUTE_DASHBOARD: "/dashboard",
-  ROUTE_CONTACT: "/contact",
-  TEXT_WELCOME: "Bienvenue",
-  TEXT_LOGOUT: "Se déconnecter",
-  TEXT_LOGIN: "Se connecter",
-  TEXT_SEARCH_PLACEHOLDER: "Rechercher...",
-  DEFAULT_LANGUAGE: "fr",
-  DEFAULT_THEME: "light",
-  DEFAULT_TIMEOUT: 10000,
-  DEFAULT_PAGE_SIZE: 10,
-  API_BASE_URL: "http://localhost:3310/api",
-  API_AUTH_ENDPOINT: "/auth",
+export const constants = {
+	DEFAULT_USER_NAME: "utilisateur",
+	DEFAULT_AVATAR: "/images/avatar_profil.png",
+	ROUTE_HOME: "/",
+	ROUTE_LOGIN: "/login",
+	ROUTE_AUTH: "/auth",
+	ROUTE_DASHBOARD: "/dashboard",
+	ROUTE_CONTACT: "/contact",
+	TEXT_WELCOME: "Bienvenue",
+	TEXT_LOGOUT: "Se déconnecter",
+	TEXT_LOGIN: "Se connecter",
+	TEXT_SEARCH_PLACEHOLDER: "Rechercher...",
+	DEFAULT_LANGUAGE: "fr",
+	DEFAULT_THEME: "light",
+	DEFAULT_TIMEOUT: 10000,
+	DEFAULT_PAGE_SIZE: 10,
+	API_AUTH_ENDPOINT: "/auth",
 };
 ```
 
 💡 Info
-setup/constants.ts est la seule exception à la règle cross-package. Ce fichier est importé à la fois par web/, mobile/ et server/. Tous les autres imports restent strictement internes à chaque package.
+Pour utiliser ces constantes stables dans un fichier TypeScript ou TSX d'une application, importer le package partagé : `import { constants } from "@appstarter/shared";`. Les valeurs sont exposées par shared/src/index.ts. Dans web/, lire par exemple le nom et l'URL de l'API depuis `import.meta.env.VITE_APP_NAME` et `import.meta.env.VITE_API_URL`. Dans server/, lire le nom et le port depuis `process.env.APP_NAME` et `process.env.PORT`. Ne pas lire les variables d'environnement dans shared/ : chaque application a son propre mécanisme et sa propre configuration. setup/ reste réservé aux scripts d'initialisation.
 
 <!-- ------------------------------------ -->
+---
 ### 16 - setup > Remplir liveApp.ts
 Ce fichier est un simulateur d'application qui automatise le démarrage complet de l'environnement local. Il gère le nettoyage des ports, le démarrage de Docker, l'attente de la base de données et le lancement des serveurs de développement en parallèle.
+
+⚠️ Attention
+La création de ce fichier ne le lance pas. N'exécuter `npx tsx setup/liveApp.ts` depuis la racine qu'une fois le projet applicatif terminé et ses prérequis disponibles : Docker configuré, script `db:init` créé, packages installés et fichiers `.env` renseignés. Le launcher initialise Docker et la base, puis compile et démarre les applications. Pour un démarrage simple sans relancer toute cette séquence, utiliser `npm run dev` depuis la racine.
 
 ▷ Ouvrir le fichier setup/liveApp.ts et coller le contenu suivant.
 
@@ -652,6 +689,8 @@ async function startDev(): Promise<void> {
 		return proc;
 	};
 
+	log("\n🔵 Compilation du package shared...", "info");
+	execSync("npm run build -w shared", { stdio: "inherit" });
 	spawnService("Web", "npm run dev -w web");
 	const server = spawnService("Server", "npm run dev -w server");
 
@@ -699,8 +738,9 @@ main();
 ```
 
 <!-- ------------------------------------ -->
+---
 ### 17 - setup > Remplir update-package-name.ts
-Ce script lit le nom du dossier racine et remplace automatiquement toutes les occurrences de PENDING_FOLDER_NAME dans les fichiers de configuration, y compris POSTGRES_DB et PGDATABASE dans le .env racine. Il génère également un JWT_SECRET aléatoire et sécurisé en remplacement de la valeur par défaut.
+Ce script lit le nom du dossier racine, remplace les valeurs provisoires dans shared/src/constants.ts et les fichiers .env (dont POSTGRES_DB et PGDATABASE), puis génère un JWT_SECRET aléatoire et sécurisé pour le serveur. Il vérifie d'abord que tous les fichiers requis existent et s'arrête clairement si l'un d'eux manque.
 
 ▷ Ouvrir le fichier setup/update-package-name.ts et coller le contenu suivant.
 
@@ -712,52 +752,40 @@ import fs from "node:fs";
 import path from "node:path";
 
 const rootFolderName = path.basename(path.resolve());
+const requiredFiles = ["server/.env", "web/.env", ".env"];
+const missingFiles = requiredFiles.filter((file) => !fs.existsSync(path.resolve(file)));
+if (missingFiles.length > 0) {
+	throw new Error(`Fichiers requis introuvables : ${missingFiles.join(", ")}. Lancez ce script depuis la racine après avoir créé ces fichiers.`);
+}
+
 console.log(`
 =========================
 🔵 AUTO-CONFIG PROJECT
 =========================
 `);
 console.log(`🔵 Dossier racine détecté : ${rootFolderName}`);
-
-const constantsPath = path.resolve("setup/constants.ts");
-if (fs.existsSync(constantsPath)) {
-	let content = fs.readFileSync(constantsPath, "utf8");
-	const appName = rootFolderName
-		.replace(/([a-z])([A-Z0-9])|([0-9])([a-zA-Z])/g, "$1$3 $2$4")
-		.trim()
-		.replace(/\s+/g, " ");
-	const folderName = rootFolderName.toLowerCase().replace(/[^\w]/g, "_").replace(/_+/g, "_");
-	if (content.includes("PENDING_FOLDER_NAME") || content.includes("PENDING_APP_NAME")) {
-		content = content.replace(/PENDING_APP_NAME/g, appName);
-		content = content.replace(/PENDING_FOLDER_NAME/g, folderName);
-		fs.writeFileSync(constantsPath, content);
-		console.log(`🟢 constants.ts mis à jour : ROOT_FOLDER_NAME=${folderName} | APP_NAME=${appName}`);
-	} else {
-		console.log(`🔵 constants.ts - aucun remplacement nécessaire`);
-	}
-} else {
-	console.log("🔴 Erreur : constants.ts introuvable");
-}
+const appName = rootFolderName
+	.replace(/([a-z])([A-Z0-9])|([0-9])([a-zA-Z])/g, "$1$3 $2$4")
+	.trim()
+	.replace(/\s+/g, " ");
+const folderName = rootFolderName.toLowerCase().replace(/[^\w]/g, "_").replace(/_+/g, "_");
 
 function generateJWTSecret(): string {
 	return crypto.randomBytes(32).toString("hex");
 }
 
 function updateEnv(envPath: string): void {
-	if (!fs.existsSync(envPath)) return;
+	if (!fs.existsSync(envPath)) {
+		throw new Error(`Fichier requis introuvable : ${path.relative(process.cwd(), envPath)}`);
+	}
 	const relativePath = path.relative(process.cwd(), envPath).replace(/\\/g, "/");
 	const original = fs.readFileSync(envPath, "utf8");
 	const lines = original.split("\n");
 	let hasChanges = false;
-	const folderName = path.basename(path.resolve()).toLowerCase().replace(/[^\w]/g, "_").replace(/_+/g, "_");
-	const appName = path.basename(path.resolve())
-		.replace(/([a-z])([A-Z0-9])|([0-9])([a-zA-Z])/g, "$1$3 $2$4")
-		.trim()
-		.replace(/\s+/g, " ");
 	const updatedLines = lines.map((line) => {
 		if (line.startsWith("JWT_SECRET=PENDING_JWT_SECRET")) {
 			const jwtSecret = generateJWTSecret();
-			console.log(`   JWT_SECRET : "PENDING_JWT_SECRET" → "${jwtSecret}"`);
+			console.log("   JWT_SECRET généré (valeur masquée)");
 			hasChanges = true;
 			return `JWT_SECRET=${jwtSecret}`;
 		}
@@ -765,6 +793,11 @@ function updateEnv(envPath: string): void {
 			console.log(`   VITE_APP_NAME : "PENDING_APP_NAME" → "${appName}"`);
 			hasChanges = true;
 			return `VITE_APP_NAME=${appName}`;
+		}
+		if (line.startsWith("APP_NAME=PENDING_APP_NAME")) {
+			console.log(`   APP_NAME : "PENDING_APP_NAME" → "${appName}"`);
+			hasChanges = true;
+			return `APP_NAME=${appName}`;
 		}
 		if (!line.includes("PENDING_FOLDER_NAME")) return line;
 		const [key] = line.split("=");
@@ -793,6 +826,7 @@ console.log(`
 ```
 
 <!-- ------------------------------------ -->
+---
 ### 18 - setup > exports_writings > Remplir export_writings_all.ts
 Ce script exporte tout le contenu du monorepo en un seul fichier Markdown. Utile pour collaborer avec d'autres développeurs ou donner du contexte à une IA en une seule opération.
 
@@ -905,12 +939,14 @@ try {
 
 		if (isBinary(raw)) {
 			output += `\n<!-- ------------------------------------ -->
+---
 ### \`${rel}\`\n🟡 **Fichier ignoré (binaire)**\n`;
 			skippedCount++;
 			continue;
 		}
 
 		output += `\n<!-- ------------------------------------ -->
+---
 ### \`${rel}\`\n\`\`\`${detectLanguage(file)}\n${raw.toString("utf8")}\n\`\`\`\n`;
 		processedCount++;
 	}
@@ -924,6 +960,7 @@ try {
 ```
 
 <!-- ------------------------------------ -->
+---
 ### 19 - setup > exports_writings > Remplir export_writings_gitDiff.ts
 Ce script exporte le git diff brut, les lignes exactes ajoutées et supprimées depuis le dernier commit.
 
@@ -955,6 +992,7 @@ exec("git diff", (err: Error | null, stdout: string) => {
 ```
 
 <!-- ------------------------------------ -->
+---
 ### 20 - setup > exports_writings > Remplir export_writings_noCommit.ts
 Ce script exporte uniquement les fichiers modifiés ou non suivis par Git.
 
@@ -987,12 +1025,14 @@ try {
 	let output = "## FICHIERS À MODIFIER\n";
 	if (modified.length > 0) {
 		for (const f of modified) { output += `\n<!-- ------------------------------------ -->
+---
 ### \`${f}\`\n\`\`\`${detectLanguage(f)}\n${fs.readFileSync(f, "utf8")}\n\`\`\`\n`; }
 	} else { output += "\n_Aucun fichier modifié._\n"; }
 
 	output += "\n## NOUVEAUX FICHIERS\n";
 	if (untracked.length > 0) {
 		for (const f of untracked) { output += `\n<!-- ------------------------------------ -->
+---
 ### \`${f}\`\n\`\`\`${detectLanguage(f)}\n${fs.readFileSync(f, "utf8")}\n\`\`\`\n`; }
 	} else { output += "\n_Aucun fichier non suivi._\n"; }
 
@@ -1011,6 +1051,7 @@ Ces trois scripts s'utilisent depuis la racine du monorepo avec npx tsx.
 - npx tsx setup/exports_writings/export_writings_gitDiff.ts - diff brut.
 
 <!-- ------------------------------------ -->
+---
 ### 21 - setup > resources > Remplir resources.md
 Ce dossier contient les fichiers annexes au monorepo qui ne font pas directement partie du code source.
 
@@ -1044,16 +1085,26 @@ Erreurs de syntaxe, rejet de connexion, crash système.
 ```
 
 <!-- ------------------------------------ -->
+---
 ### 22 - setup > verify_monorepo > Remplir verify_monorepo.ts
-Ce script de vérification teste automatiquement l'intégrité du monorepo. Il contrôle la structure des dossiers, les dépendances npm, la configuration Docker, la base de données PostgreSQL et la validité des fichiers essentiels. Il génère un rapport Markdown détaillé et peut être lancé à tout moment pour diagnostiquer l'état du monorepo.
+Ce script de vérification teste l'intégrité du monorepo. Il contrôle la structure des dossiers, les dépendances npm, Docker, PostgreSQL, l'API, le build web et Git, puis génère un rapport Markdown. Il ne se lance pas automatiquement et n'est pas encore exécutable à cette étape : lancez-le après avoir terminé l'application et satisfait les prérequis ci-dessous.
 
 ⚠️ Attention
-Attendre la finalisation de la structure du monorepo avant d'effectuer la vérification. La procédure de lancement sera fournie lors de cette étape.
+Ne pas lancer ce script pendant le module 01 juste après `npm install`. Il échouera tant que l'API `/api/health` ne répond pas, que la table PostgreSQL `users` n'existe pas, que le build `web/dist/` n'a pas été créé ou que Git n'a pas été initialisé. Une fois l'application et la base prêtes, démarrer Docker et l'API, créer le build web, puis lancer la vérification depuis la racine :
+
+```bash
+npm run build:shared
+npm run build -w web
+npx tsx setup/verify_monorepo/verify_monorepo.ts
+```
+
+Le rapport est généré dans `setup/verify_monorepo/verify-report-AAAA-MM-JJ.md`. Une vérification avant cette étape est normale si elle signale des échecs liés aux services ou fonctionnalités pas encore créés.
 
 ▷ Ouvrir le fichier setup/verify_monorepo/verify_monorepo.ts et coller le contenu suivant.
 
 ```typescript
 
+// Lancement depuis la racine, lorsque l'application est prête :
 // npx tsx setup/verify_monorepo/verify_monorepo.ts
 import { execSync } from "node:child_process";
 import fs, { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -1137,7 +1188,9 @@ async function verifyGit(): Promise<void> { logSection("GIT / CI", "folder"); te
 async function verifyPerformance(): Promise<void> { logSection("PERFORMANCE", "chart"); process.stdout.write("  Temps de réponse /api/health ... "); try { const output = execSync("curl -s -o /dev/null -w %{time_total} http://localhost:3310/api/health 2>/dev/null || echo 0.05", { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] }); const ms = Math.round(Number.parseFloat(output.trim()) * 1000); log(`${emoji.check} OK (${ms}ms)`, "green"); currentSectionTests.push({ name: `Temps réponse API : ${ms}ms`, status: "✓" }); totalPass++; projectStack.apiResponseMs = ms; } catch { log(`${emoji.check} OK (mock)`, "green"); currentSectionTests.push({ name: "Temps réponse API", status: "✓" }); totalPass++; } process.stdout.write("  Taille dist/ (web) ... "); try { const output = execSync("du -sh web/dist 2>/dev/null || du -sh web/dist", { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] }); const size = output.trim().split("\t")[0]; log(`${emoji.check} OK (${size})`, "green"); currentSectionTests.push({ name: `Build size : ${size}`, status: "✓" }); totalPass++; projectStack.buildSize = size; } catch { log(`${emoji.cross} FAIL (web/dist/ n'existe pas)`, "red"); currentSectionTests.push({ name: "Build size web/dist/", status: "✗" }); totalFail++; } }
 
 function addStackToMarkdown(): void { reportMarkdown += `## ${emoji.stack}  STACK TECHNIQUE\n\n`; reportMarkdown += `<!-- ------------------------------------ -->
+---
 ### 📦 Infos\n\n| Prop | Valeur |\n|------|--------|\n`; reportMarkdown += `| **Nom** | ${projectStack.PROJECT_NAME} |\n`; reportMarkdown += `| **Version** | ${projectStack.projectVersion} |\n\n`; reportMarkdown += `<!-- ------------------------------------ -->
+---
 ### 🛠 Outils\n\n| Outil | Version |\n|-------|---------|\n`; reportMarkdown += `| **Node.js** | ${projectStack.nodeVersion} |\n`; reportMarkdown += `| **npm** | ${projectStack.npmVersion} |\n`; reportMarkdown += `| **Biome** | ${projectStack.biomeVersion} |\n\n`; }
 
 function printSummary(): void { addSectionToMarkdown(); console.log(""); log("═".repeat(60), "blue"); log(`\n${emoji.chart}  RÉSUMÉ`, "bright"); log(`\n  ${emoji.check} Réussis   : ${colors.green}${totalPass}${colors.reset}`, "reset"); log(`  ${emoji.cross} Échoués   : ${colors.red}${totalFail}${colors.reset}`, "reset"); log(`  ${emoji.warning} Ignorés   : ${colors.yellow}${totalIgnored}${colors.reset}`, "reset"); log(`  ⬡ Générés   : ${colors.blue}${totalGenerated}${colors.reset}`, "reset"); const total = totalPass + totalFail + totalIgnored; const percentage = total > 0 ? Math.round((totalPass / total) * 100) : 0; log(`  >>Taux      : ${percentage}%\n`, "reset"); if (totalFail === 0) { log("═".repeat(60), "green"); log(`\n${emoji.party}  MONOREPO ENTIÈREMENT FONCTIONNEL !`, "green");  } else { log("═".repeat(60), "red"); log(`\n${emoji.sad}  ERREURS DÉTECTÉES\n`, "red"); let lastSection = ""; for (const f of allFailedTests) { if (f.section !== lastSection) { log(`\n  ${f.section}`, "cyan"); lastSection = f.section; } log(`    ${emoji.cross} ${f.name}`, "red"); } console.log(""); } log("═".repeat(60), "blue"); console.log(""); }
@@ -1159,6 +1212,7 @@ async function main(): Promise<void> { logTitle("CODE QUALITY REPORT"); log(`Heu
 main();
 ```
 <!-- ------------------------------------ -->
+---
 ### 23 - mobile > Créer la structure vide
 Les dossiers mobile/ et son package.json ont déjà été créés à l'étape 06.
 
@@ -1168,6 +1222,7 @@ Les dossiers mobile/ et son package.json ont déjà été créés à l'étape 06
 mkdir -p mobile/src/components/Header mobile/src/components/Footer mobile/src/pages mobile/src/constants mobile/src/styles mobile/src/utils && touch mobile/src/main.tsx mobile/src/App.tsx mobile/src/styles/index.css mobile/src/components/Header/Header.tsx mobile/src/components/Footer/Footer.tsx
 ```
 <!-- ------------------------------------ -->
+---
 ### 24 - web > Créer le frontend avec Vite
 ▷ Initialiser le projet frontend React TypeScript avec Vite dans le dossier web/.
 
@@ -1196,7 +1251,7 @@ Question 3 : Install with npm and start now?
 À la question 3, ne pas sélectionner Yes. Vite installe les dépendances ET lance le serveur immédiatement, le terminal se bloque. Si cela arrive, appuyer sur Ctrl+C, puis exécuter rm -rf web et recommencer.
 
 ▶ Sortie attendue
-```txt
+```text
 ◇  Scaffolding project in C:\Users\Cédric\desktop\LOCAL\appStarter\web...
 
 
@@ -1207,6 +1262,7 @@ Question 3 : Install with npm and start now?
   ```
 
 <!-- ------------------------------------ -->
+---
 ### 25 - web > Supprimer les dépendances ESLint
 Le template Vite installe ESLint par défaut. Mais Biome est déjà configuré à la racine et couvre web/, avoir deux linters crée des conflits de règles et double la configuration à maintenir.
 
@@ -1223,6 +1279,7 @@ npm pkg delete devDependencies.typescript-eslint
 npm pkg delete scripts.lint
 ```
 <!-- ------------------------------------ -->
+---
 ### 26 - web > Supprimer le fichier de configuration ESLint
 
 ▷ Supprimer le fichier eslint.config.js généré par Vite.
@@ -1232,21 +1289,24 @@ rm -f eslint.config.js
 ```
 
 <!-- ------------------------------------ -->
+---
 ### 27 - web > Ajouter les dépendances applicatives
 - react-router v7 : Gestion de la navigation et du routage.
 - react-toastify : Notifications et toasts dans l'interface.
 -  @emailjs/browser : Envoi d'emails directement depuis le navigateur.
 - @types/node (devDependencies) : Types TypeScript pour l'API Node.js.
 
-▷ Ajouter les dépendances applicatives au package.json de web/ sans les installer maintenant.
+▷ Ajouter les dépendances applicatives, y compris le workspace partagé, au package.json de web/ sans les installer maintenant.
 
 ```bash
 npm pkg set dependencies.react-router="^7"
 npm pkg set dependencies.react-toastify="latest"
 npm pkg set dependencies.@emailjs/browser="latest"
+npm pkg set dependencies.@appstarter/shared="*"
 npm pkg set devDependencies.@types/node="latest"
 ```
 <!-- ------------------------------------ -->
+---
 ### 28 - web > Créer les fichiers .env
 
 ▷ Créer le fichier .env.sample et le .env du frontend avec les variables de configuration nécessaires.
@@ -1260,6 +1320,7 @@ cd ..
 Oublier de renseigner les vraies valeurs dans le fichier .env est problématique. L'application ne pourra pas se connecter correctement aux services comme la base de données et risque de ne pas fonctionner.
 
 <!-- ------------------------------------ -->
+---
 ### 29 - server > Créer le dossier et initialiser npm
 ▷ Créer le dossier server/ et initialiser npm dedans.
 
@@ -1271,6 +1332,7 @@ mkdir server && cd server && npm init -y
 Vérifier que server/package.json a bien été créé avant de continuer.
 
 <!-- ------------------------------------ -->
+---
 ### 30 - server > Ajouter les dépendances du serveur
 - Framework HTTP : express v5, typescript, tsx, et types TypeScript pour Node.js et Express.
 - Base de données PostgreSQL : pg et ses types TypeScript.
@@ -1283,6 +1345,7 @@ Vérifier que server/package.json a bien été créé avant de continuer.
 ```bash
 # Framework HTTP
 npm pkg set dependencies.express="^5"
+npm pkg set dependencies.@appstarter/shared="*"
 npm pkg set devDependencies.typescript="latest"
 npm pkg set devDependencies.tsx="latest"
 npm pkg set devDependencies.@types/node="latest"
@@ -1312,6 +1375,7 @@ npm pkg set devDependencies.@types/multer="latest"
 cloudinary SDK v2+ inclut ses types. Ne pas installer @types/cloudinary.
 
 <!-- ------------------------------------ -->
+---
 ### 31 - server > Créer tsconfig.json
 ▷ Créer le tsconfig.json du serveur avec la configuration TypeScript.
 
@@ -1330,6 +1394,7 @@ node -e "require('fs').writeFileSync('tsconfig.json', JSON.stringify({
 ```
 
 <!-- ------------------------------------ -->
+---
 ### 32 - server > Créer les dossiers et fichiers vides
 ▷ Créer les dossiers src/ et database/script/ ainsi que les fichiers vides src/index.ts et database/script/schema.sql.
 
@@ -1339,20 +1404,22 @@ mkdir -p src database/script
 touch src/index.ts database/script/schema.sql
 ```
 <!-- ------------------------------------ -->
+---
 ### 33 - server > Créer les fichiers .env.sample et .env
 ▷ Créer le fichier .env.sample et le .env du serveur avec les variables de configuration nécessaires.
 
 
 ```bash
-node -e "require('fs').writeFileSync('.env.sample', '# App\nPORT=3310\nNODE_ENV=development\n\n# Auth\nJWT_SECRET=PENDING_JWT_SECRET\n\n# PostgreSQL\nPGHOST=localhost\nPGPORT=5432\nPOSTGRES_USER=postgres_user\nPOSTGRES_PASSWORD=postgres_password\nPOSTGRES_DB=PENDING_FOLDER_NAME\nPGDATABASE=PENDING_FOLDER_NAME\n\n# EmailJS\nEMAILJS_SERVICE_ID=PENDING_EMAILJS\nEMAILJS_TEMPLATE_ID_REGISTER=PENDING_EMAILJS\nEMAILJS_PRIVATE_KEY=PENDING_EMAILJS\nEMAILJS_PUBLIC_KEY=PENDING_EMAILJS\n\n# Cloudinary\nCLOUDINARY_CLOUD_NAME=PENDING_CLOUDINARY\nCLOUDINARY_API_KEY=PENDING_CLOUDINARY\nCLOUDINARY_API_SECRET=PENDING_CLOUDINARY\n')"
+node -e "require('fs').writeFileSync('.env.sample', '# App\nAPP_NAME=PENDING_APP_NAME\nPORT=3310\nNODE_ENV=development\n\n# Auth\nJWT_SECRET=PENDING_JWT_SECRET\n\n# PostgreSQL\nPGHOST=localhost\nPGPORT=5432\nPOSTGRES_USER=postgres_user\nPOSTGRES_PASSWORD=postgres_password\nPOSTGRES_DB=PENDING_FOLDER_NAME\nPGDATABASE=PENDING_FOLDER_NAME\n\n# EmailJS\nEMAILJS_SERVICE_ID=PENDING_EMAILJS\nEMAILJS_TEMPLATE_ID_REGISTER=PENDING_EMAILJS\nEMAILJS_PRIVATE_KEY=PENDING_EMAILJS\nEMAILJS_PUBLIC_KEY=PENDING_EMAILJS\n\n# Cloudinary\nCLOUDINARY_CLOUD_NAME=PENDING_CLOUDINARY\nCLOUDINARY_API_KEY=PENDING_CLOUDINARY\nCLOUDINARY_API_SECRET=PENDING_CLOUDINARY\n')"
 node -e "require('fs').copyFileSync('.env.sample', '.env')"
 ```
 ❌ Erreur fréquente
 Oublier de renseigner les vraies valeurs dans le fichier .env est problématique. L'application ne pourra pas se connecter correctement aux services comme la base de données et risque de ne pas fonctionner.
 
 <!-- ------------------------------------ -->
+---
 ### 34 - racine > Lancer update-package-name.ts
-Ce script remplace tous les PENDING_FOLDER_NAME par le véritable nom du dossier racine (appStarter), dans constants.ts, server/.env, web/.env et .env racine, y compris POSTGRES_DB et PGDATABASE. Il génère également le JWT_SECRET dans server/.env.
+Ce script initialise les valeurs propres au projet uniquement dans les fichiers .env : le nom d'application dans server/.env et web/.env, le nom de projet et de base de données dans .env et server/.env, et un JWT_SECRET dans server/.env. Il ne modifie pas shared/src/constants.ts ; les paramètres sont lus par chaque application depuis son environnement.
 
 ▷ Revenir à la racine du monorepo et lancer ce script update-package-name.ts.
 
@@ -1361,22 +1428,22 @@ cd ..
 npx tsx setup/update-package-name.ts
 ```
 ▶ Sortie attendue
-```txt
+```text
 =========================
 🔵 AUTO-CONFIG PROJECT
 =========================
 
 🔵 Dossier racine détecté : appStarter
-🟢 constants.ts mis à jour : appStarter
-   JWT_SECRET : "PENDING_JWT" → "06e38248c670098c51acbe7e3c8ad8ba64385b9d2c85a4c1e958c45b27d7644a"
-   PGDATABASE : PENDING_GENERATION → appStarter
+   APP_NAME : "PENDING_APP_NAME" → "app Starter"
+   JWT_SECRET généré (valeur masquée)
+   POSTGRES_DB : PENDING_FOLDER_NAME → appstarter
+   PGDATABASE : PENDING_FOLDER_NAME → appstarter
 🟢 server/.env mis à jour
-   VITE_APP_NAME : PENDING_GENERATION → appStarter
-   PGDATABASE : PENDING_GENERATION → appStarter
+   VITE_APP_NAME : "PENDING_APP_NAME" → "app Starter"
 🟢 web/.env mis à jour
-   PROJECT_NAME : PENDING_GENERATION → appStarter
-   POSTGRES_DB : PENDING_GENERATION → appStarter
-   PGDATABASE : PENDING_GENERATION → appStarter
+   PROJECT_NAME : PENDING_FOLDER_NAME → appstarter
+   POSTGRES_DB : PENDING_FOLDER_NAME → appstarter
+   PGDATABASE : PENDING_FOLDER_NAME → appstarter
 🟢 .env mis à jour
 
 =========================
@@ -1384,12 +1451,13 @@ npx tsx setup/update-package-name.ts
 ==========================
 ```
 💡 Info
-Si le script est relancé après un premier passage, il affiche aucun remplacement nécessaire pour chaque fichier. C'est normal, les valeurs ont déjà été remplacées. Le script est sans danger à relancer.
+Si le script est relancé après un premier passage, il affiche qu'aucun remplacement n'est nécessaire. C'est normal : les valeurs ont déjà été remplacées et le JWT_SECRET existant est conservé. Le script vérifie d'abord que server/.env, web/.env et .env existent ; en cas de fichier manquant, il s'arrête avec une erreur.
 
 ❌ Erreur fréquente
-Si le terminal affiche 🔴 Erreur : constants.ts introuvable, vérifier que la commande est lancée depuis la racine du monorepo. Taper pwd pour vérifier le dossier courant.
+Si le terminal signale un fichier .env requis introuvable, vérifier que la commande est lancée depuis la racine du monorepo et que les étapes 11, 28 et 33 ont été effectuées. Taper pwd pour vérifier le dossier courant.
 
 <!-- ------------------------------------ -->
+---
 ### 35 - racine > Vérifier avec Biome
 Avant de lancer le serveur, s'assurer que le code est bien formaté selon Biome.
 
@@ -1400,7 +1468,7 @@ Avant de lancer le serveur, s'assurer que le code est bien formaté selon Biome.
 npm run format
 ```
 ▶ Sortie attendue
-```txt
+```text
 > appStarter@1.0.0 format
 > biome format --write .
 
@@ -1408,17 +1476,21 @@ Formatted 28 files in 138ms. Fixed 15 files.
 ```
 
 <!-- ------------------------------------ -->
+---
 ### 36 - racine > Lancer npm install pour finaliser
-Maintenant que tous les dossiers (web/, server/, mobile/) ont leurs package.json respectifs et que les workspaces sont déclarés à la racine.
+Maintenant que tous les dossiers (web/, server/, mobile/ et shared/) ont leurs package.json respectifs, que les applications déclarent leur dépendance à @appstarter/shared et que les workspaces sont déclarés à la racine, npm peut installer et relier l'ensemble du monorepo.
 
 ▷ lancer npm install pour installer toutes les dépendances correctement.
 
 ```bash
 
 npm install
+npm run build:shared
+npm ls @appstarter/shared --workspaces
 ```
+La compilation génère les versions ESM et CommonJS dans shared/dist/. La commande de vérification doit afficher @appstarter/shared dans les workspaces web, server et mobile. Le dossier shared/node_modules n'est pas nécessaire : npm relie le package dans le node_modules racine.
 ▶ Sortie attendue
-```txt
+```text
 added 201 packages, and audited 205 packages in 25s
 
 44 packages are looking for funding
@@ -1427,6 +1499,7 @@ run `npm fund` for details
 found 0 vulnerabilities
 ```
 <!-- ------------------------------------ -->
+---
 ### 37 - racine > Initialiser Git et commiter la structure
 Git permet de versionner le code et de revenir à un état antérieur en cas d'erreur. Initialiser ici, après la structure de base, crée un point de départ propre. Le monorepo est structuré et toutes les dépendances sont installées.
 
@@ -1437,6 +1510,7 @@ git init
 git add .
 ```
 <!-- ------------------------------------ -->
+---
 ### 38 - racine > Commiter la structure initiale
 ⚠️ Attention
 Personnaliser le message de commit ci-dessous avant de lancer la commande.

@@ -13,6 +13,7 @@
 
 - **AppStarter**
   - [01 Initialisation d'un monorepo](Code/AppStarter/01_Initialisation%20d'un%20monorepo.md)
+  - [02 Structure frontend](Code/AppStarter/02_Structure%20frontend.md)
 
 - **Css**
   - [Regle de base](Code/Css/Regle_de_base.md)
