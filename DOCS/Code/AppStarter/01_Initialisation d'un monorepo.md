@@ -18,6 +18,7 @@ Avant de commencer : À partir de l'étape 03, des dependence seront ajoutées a
 C'est normal et attendu ! À l'étape 36, un seul npm install à la racine installera TOUTES les dépendances et TOUS les problèmes disparaîtront d'un coup. Ne pas s'inquiéter des erreurs rouges avant cette étape.
 
 <!-- ------------------------------------ -->
+---
 ### 01 - racine > Ouvrir Git bash et créer le dossier du monorepo
 ⚠️ Attention
 Le nom du dossier racine sert à initialiser PROJECT_NAME et le nom affiché de l'application dans les fichiers .env. Il est préférable de choisir un nom sans espaces ni caractères spéciaux, ici appStarter. Les applications lisent ces paramètres depuis leur environnement ; ils ne sont pas codés dans shared/src/constants.ts.
@@ -161,12 +162,16 @@ Les scripts de développement compilent d'abord shared/, puis lancent les applic
 💡 Info
 - npm run dev : compile shared/, puis lance les deux processus en parallèle depuis la racine via les workspaces npm natifs.
 - npm run build:shared : compile shared/ en JavaScript et génère ses déclarations TypeScript.
+- npm run build : lance le script build de chaque workspace qui en possède un.
+- npm run tsc : vérifie les types TypeScript du serveur et du frontend. À lancer après la création de leurs tsconfig.json.
 - npm run fix : corrige les erreurs lint et formate en une seule commande, utile avant un commit.
 - npm run lint : signale les erreurs sans les corriger.
 - npm run format : formate uniquement, sans vérifier le lint.
 
 ```bash
 npm pkg set scripts.build:shared="npm run build -w shared"
+npm pkg set scripts.build="npm run build -ws --if-present"
+npm pkg set scripts.tsc="tsc --noEmit -p server/tsconfig.json && tsc --noEmit -p web/tsconfig.json"
 npm pkg set scripts.dev='npm run build:shared && concurrently "npm run dev -w web" "npm run dev -w server"'
 npm pkg set scripts.dev:web="npm run build:shared && npm run dev -w web"
 npm pkg set scripts.dev:server="npm run build:shared && npm run dev -w server"
@@ -209,10 +214,14 @@ fs.writeFileSync('.vscode/settings.json', JSON.stringify({
     'source.organizeImports.biome': 'explicit',
     'source.fixAll.biome': 'explicit'
   },
+  'css.validate': true,
+  'css.lint.vendorPrefix': 'ignore',
   'biome.lsp.bin': bin
 }, null, 2))
 "
 ```
+
+`css.validate` active la validation CSS intégrée à VS Code. `css.lint.vendorPrefix: ignore` masque les avertissements concernant les préfixes propriétaires (`-webkit-`, `-moz-`, etc.). Le chemin de l'exécutable Biome est choisi automatiquement selon le système d'exploitation et l'architecture ; ne pas le remplacer par un chemin Windows fixe.
 
 <!-- ------------------------------------ -->
 ---
@@ -241,19 +250,22 @@ npm pkg delete scripts.test
 ---
 ### 11 - racine > Créer .gitignore, .env.sample et .env
 - .gitignore indique à Git quels fichiers ne jamais envoyer sur GitHub.
-- .env.sample est un modèle de fichier .env ne contenant aucune donnée sensible. Les identifiants et mots de passe, comme la base de données ou la configuration locale, doivent être définis uniquement dans le fichier .env réel.
-- .env contient les identifiants et mots de passe sensibles. POSTGRES_DB (utilisé par Docker) et PGDATABASE (utilisé par le serveur) doivent pointer vers la même base. PENDING_FOLDER_NAME sera remplacé à l'étape 34.
+- .env.sample est un modèle de fichier .env ne contenant aucune donnée sensible. Les identifiants et mots de passe, comme la base de données ou la configuration locale, doivent être définis uniquement dans les fichiers .env locaux.
+- Le .env à la racine fournit à Docker Compose les variables PostgreSQL et pgAdmin. web/.env configure le frontend Vite et server/.env configure le serveur. Les exemples .env.sample peuvent être suivis par Git ; ne jamais y mettre de secret réel.
+- POSTGRES_DB (utilisé par Docker) et PGDATABASE (utilisé par le serveur) doivent pointer vers la même base. PENDING_FOLDER_NAME sera remplacé à l'étape 34.
 
 ▷ Créer les fichiers .gitignore, .env.sample et .env avec leurs variables d'environnement et règles d'exclusion.
 
 ```bash
-node -e "require('fs').writeFileSync('.gitignore', 'node_modules/\n.env\ndist/\n.DS_Store\n*.tsbuildinfo\n.vscode/\n')"
+node -e "require('fs').writeFileSync('.gitignore', 'node_modules/\n.env\n.env.*\n!.env.sample\ndist/\ndist-ssr/\nlogs/\n*.log\nnpm-debug.log*\n*.local\n.DS_Store\n*.tsbuildinfo\n.vscode/\n')"
 node -e "require('fs').writeFileSync('.env.sample', '# App\nNODE_ENV=development\nPROJECT_NAME=PENDING_FOLDER_NAME\n\n# PostgreSQL\nPOSTGRES_USER=postgres_user\nPOSTGRES_PASSWORD=postgres_password\nPOSTGRES_DB=PENDING_FOLDER_NAME\nPGDATABASE=PENDING_FOLDER_NAME\nPGHOST=localhost\nPGPORT=5432\n\n# pgAdmin\nPGADMIN_EMAIL=admin_user\nPGADMIN_PASSWORD=admin_password\nPGADMIN_PORT=5050\n')"
 node -e "require('fs').copyFileSync('.env.sample', '.env')"
 ```
 
+Les règles `.env` et `.env.*` ignorent les fichiers d'environnement locaux à la racine et dans les workspaces. `!.env.sample` permet de versionner les modèles, notamment web/.env.sample et server/.env.sample.
+
 ❌ Erreur fréquente
-Oublier de renseigner les vraies valeurs dans le fichier .env est problématique. L'application ne pourra pas se connecter correctement aux services comme la base de données et risque de ne pas fonctionner.
+Oublier de renseigner les vraies valeurs dans les fichiers .env locaux est problématique : l'application ne pourra pas se connecter correctement aux services. Ne remplacez les valeurs fictives que dans les .env ignorés par Git, jamais dans les .env.sample.
 
 <!-- ------------------------------------ -->
 ---
@@ -302,6 +314,26 @@ services:
 volumes:
   postgres_data:
 ```
+
+Commandes courantes à lancer depuis la racine du monorepo :
+
+```bash
+# Démarrer PostgreSQL et pgAdmin en arrière-plan
+docker compose up -d
+
+# Vérifier l'état des services et consulter les logs PostgreSQL
+docker compose ps
+docker compose logs -f db
+
+# Arrêter les conteneurs en conservant les données
+docker compose stop
+
+# Supprimer les conteneurs et le réseau (les données du volume sont conservées)
+docker compose down
+```
+
+⚠️ Attention
+Ne pas ajouter `-v` à `docker compose down` pour un arrêt normal : cette option supprime aussi le volume PostgreSQL et donc les données de la base.
 
 <!-- ------------------------------------ -->
 ---
@@ -1311,8 +1343,10 @@ npm pkg set devDependencies.@types/node="latest"
 
 ▷ Créer le fichier .env.sample et le .env du frontend avec les variables de configuration nécessaires.
 
+Le fichier web/.env.sample contient uniquement des valeurs fictives et peut être versionné. Renseigner les clés réelles dans web/.env, qui est ignoré par Git. Les variables préfixées par VITE_ sont exposées au code frontend : n'y placer aucun secret.
+
 ```bash
-node -e "require('fs').writeFileSync('.env.sample', '# App\nVITE_APP_NAME=PENDING_APP_NAME\n\n# API\nVITE_API_URL=http://localhost:3310/api\n\n# EmailJS\nVITE_EMAILJS_SERVICE_ID=PENDING_EMAILJS\nVITE_EMAILJS_TEMPLATE_ID=PENDING_EMAILJS\nVITE_EMAILJS_PUBLIC_KEY=PENDING_EMAILJS\n')"
+node -e "require('fs').writeFileSync('.env.sample', '# App\nVITE_APP_NAME=PENDING_APP_NAME\nVITE_APP_DESCRIPTION=Description de l application\nVITE_APP_URL=http://localhost:5173\n\n# API\nVITE_API_URL=http://localhost:3310/api\n\n# EmailJS (optionnel)\nVITE_EMAILJS_SERVICE_ID=PENDING_EMAILJS\nVITE_EMAILJS_TEMPLATE_ID=PENDING_EMAILJS\nVITE_EMAILJS_PUBLIC_KEY=PENDING_EMAILJS\n')"
 node -e "require('fs').copyFileSync('.env.sample', '.env')"
 cd ..
 ```
@@ -1408,6 +1442,7 @@ touch src/index.ts database/script/schema.sql
 ### 33 - server > Créer les fichiers .env.sample et .env
 ▷ Créer le fichier .env.sample et le .env du serveur avec les variables de configuration nécessaires.
 
+Le fichier server/.env.sample est un modèle sans secret réel ; compléter les valeurs locales dans server/.env, ignoré par Git. Contrairement aux variables VITE_ du frontend, les secrets du serveur (par exemple JWT_SECRET et les clés privées) restent côté serveur et ne doivent jamais être copiés dans web/.env.
 
 ```bash
 node -e "require('fs').writeFileSync('.env.sample', '# App\nAPP_NAME=PENDING_APP_NAME\nPORT=3310\nNODE_ENV=development\n\n# Auth\nJWT_SECRET=PENDING_JWT_SECRET\n\n# PostgreSQL\nPGHOST=localhost\nPGPORT=5432\nPOSTGRES_USER=postgres_user\nPOSTGRES_PASSWORD=postgres_password\nPOSTGRES_DB=PENDING_FOLDER_NAME\nPGDATABASE=PENDING_FOLDER_NAME\n\n# EmailJS\nEMAILJS_SERVICE_ID=PENDING_EMAILJS\nEMAILJS_TEMPLATE_ID_REGISTER=PENDING_EMAILJS\nEMAILJS_PRIVATE_KEY=PENDING_EMAILJS\nEMAILJS_PUBLIC_KEY=PENDING_EMAILJS\n\n# Cloudinary\nCLOUDINARY_CLOUD_NAME=PENDING_CLOUDINARY\nCLOUDINARY_API_KEY=PENDING_CLOUDINARY\nCLOUDINARY_API_SECRET=PENDING_CLOUDINARY\n')"
