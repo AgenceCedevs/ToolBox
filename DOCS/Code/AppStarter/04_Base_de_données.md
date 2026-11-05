@@ -1,12 +1,12 @@
 # 04 - Base de données
-Ce module installe une base de données PostgreSQL via Docker, initialise le schéma SQL et configure le pool de connexions côté backend. Une fois l’ensemble en place, le backend est automatiquement relié à la base de données.
+Ce module démarre PostgreSQL via Docker Compose, initialise le schéma SQL de façon relançable et configure le pool de connexions du backend. Les noms, identifiants et ports proviennent des fichiers `.env` créés au module 01 ; les valeurs indiquées ci-dessous sont des valeurs locales par défaut, pas des constantes à recopier dans le code.
 
 À la fin de ce module :
 
-- Docker exécute un conteneur PostgreSQL accessible sur le port 5432.
+- Docker exécute PostgreSQL sur le port défini par `PGPORT` dans le `.env` racine.
 - La route /api/health teste la connexion à la base de données.
 - Le terminal affiche 🟢 Base de données connectée au démarrage du serveur.
-- pgAdmin est accessible sur http://localhost:5050.
+- pgAdmin est accessible sur le port défini par `PGADMIN_PORT` dans le `.env` racine.
 <!-- ------------------------------------ -->
 # 01 - server > Créer la structure database
 Créer le dossier server/src/database/ et les fichiers avec touch. Le contenu sera collé dans l'éditeur aux étapes suivantes.
@@ -23,7 +23,7 @@ touch server/src/database/init-db.ts
 # 02 - server > database > script > Remplir schema.sql
 Ce fichier définit la structure initiale de la base de données. Il sera exécuté lors de l'initialisation via npm run db:init.
 
-▷ Ouvrir le fichier database/script/schema.sql et coller le contenu suivant.
+▷ Ouvrir le fichier server/database/script/schema.sql créé au module 01 et coller le contenu suivant.
 
 ```sql
 -- ── Extensions ───────────────────────────────────────
@@ -53,23 +53,14 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_users_updated_at ON users;
+
 CREATE TRIGGER trigger_users_updated_at
 BEFORE UPDATE ON users
 FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-
--- ── Utilisateur Lambda ────────────────────────────────
-INSERT INTO users (email, password, name, avatar, role)
-VALUES (
-	'user@example.com',
-	'$2b$10$hashed_password_example_here',
-	'John Doe',
-	'https://via.placeholder.com/150',
-	'free'
-)
-ON CONFLICT (email) DO NOTHING;
 ```
 🔵 Info
-Ce schéma crée une table users de base avec les champs essentiels. Des tables supplémentaires seront ajoutées plus tard dans les modules suivants.
+Ce schéma crée une table users de base avec les champs essentiels. Il peut être exécuté plusieurs fois sans créer de doublons. Aucun faux compte utilisateur n'est inséré : les comptes devront être créés par le flux d'inscription, avec un mot de passe réellement haché par le serveur.
 
 <!-- ------------------------------------ -->
 # 03 - server > src > database > Remplir client.ts
@@ -79,16 +70,29 @@ Le fichier client.ts exporte un pool de connexion PostgreSQL. Il est importé pa
 
 ```typescript
 
+import "dotenv/config";
 import pg from "pg";
 
 const { Pool } = pg;
 
 const host = process.env.PGHOST || "localhost";
+const port = Number(process.env.PGPORT) || 5432;
+const user = process.env.PGUSER || process.env.POSTGRES_USER;
+const password = process.env.PGPASSWORD || process.env.POSTGRES_PASSWORD;
+const database = process.env.PGDATABASE || process.env.POSTGRES_DB;
 
-const connectionString = `postgresql://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD || ""}@${host}:${process.env.PGPORT || 5432}/${process.env.PGDATABASE}`;
+if (!user || !password || !database) {
+	throw new Error(
+		"Variables PostgreSQL manquantes : PGUSER/POSTGRES_USER, PGPASSWORD/POSTGRES_PASSWORD et PGDATABASE/POSTGRES_DB.",
+	);
+}
 
 const pool = new Pool({
-	connectionString,
+	host,
+	port,
+	user,
+	password,
+	database,
 });
 
 pool.on("error", (err) => {
@@ -97,8 +101,8 @@ pool.on("error", (err) => {
 
 export default pool;
 ```
-🟡 Attention
-Les variables d'environnement suivent le standard PostgreSQL :PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE. Ces valeurs sont définies dans server/.env.
+🔵 Info
+Le client accepte les variables standard `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`, ainsi que les noms `POSTGRES_USER`, `POSTGRES_PASSWORD` et `POSTGRES_DB` utilisés par Docker Compose et les fichiers `.env` du module 01. Les valeurs sont lues à l'exécution ; ne les inscrivez pas dans le code.
 
 <!-- ------------------------------------ -->
 # 04 - server > src > database > Remplir init-db.ts
@@ -108,192 +112,89 @@ Ce script lit le fichier schema.sql et l'exécute sur la base de données au dé
 
 ```typescript
 
-import { execSync, spawn } from "node:child_process";
-import fs from "node:fs";
+import { spawn } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import "dotenv/config";
-import pg from "pg";
+import pg, { type PoolClient } from "pg";
 
 const { Pool } = pg;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname, "../../..");
+const schemaPath = path.resolve(
+	projectRoot,
+	"server/database/script/schema.sql",
+);
+const sql = await readFile(schemaPath, "utf8");
 
-const schemaPath = path.resolve(__dirname, "../../database/script/schema.sql");
-const sql = fs.readFileSync(schemaPath, "utf8");
+const host = process.env.PGHOST || "localhost";
+const port = Number(process.env.PGPORT) || 5432;
+const user = process.env.PGUSER || process.env.POSTGRES_USER;
+const password = process.env.PGPASSWORD || process.env.POSTGRES_PASSWORD;
+const database = process.env.PGDATABASE || process.env.POSTGRES_DB;
 
-// ── Docker ────────────────────────────────────────────
-await new Promise<void>((resolve, reject) => {
-  console.log("\n=========================================");
-  console.log("🔵 DOCKER");
-  console.log("=========================================");
-
-  try {
-    const result = execSync("docker compose ps --format json", {
-      encoding: "utf8",
-    });
-    const containers = result
-      .trim()
-      .split("\n")
-      .filter(Boolean)
-      .map((l) => JSON.parse(l));
-    const allHealthy =
-      containers.length > 0 &&
-      containers.every((c) => c.Health === "healthy" || c.State === "running");
-    if (allHealthy) {
-      for (const c of containers) console.log(`🟢 ${c.Name} déjà actif`);
-      console.log("=========================================\n");
-      return resolve();
-    }
-  } catch {}
-
-  const proc = spawn("docker", ["compose", "up", "-d", "--wait"], {
-    stdio: ["inherit", "pipe", "pipe"],
-  });
-
-  proc.stdout?.on("data", (data: Buffer) => {
-    const lines = data
-      .toString()
-      .split("\n")
-      .filter((l) => l.trim());
-    for (const line of lines) {
-      if (
-        line.includes("✔") ||
-        line.includes("Healthy") ||
-        line.includes("Running")
-      ) {
-        const name = line
-          .replace(/[✔✗[\]]/g, "")
-          .replace(/Healthy|Running|Started/g, "")
-          .trim()
-          .split(" ")[0];
-        console.log(`🟢 ${name} prêt`);
-      }
-    }
-  });
-
-  proc.on("close", (code: number) => {
-    if (code === 0) {
-      console.log("🟢 Tous les conteneurs sont prêts");
-      console.log("=========================================\n");
-      resolve();
-    } else {
-      console.error("🔴 Erreur lors du démarrage Docker");
-      console.log("=========================================\n");
-      reject(new Error("Docker failed"));
-    }
-  });
-});
-
-// ── Init BDD ──────────────────────────────────────────
-console.log("\n=========================================");
-console.log("🔵 INIT BASE DE DONNÉES");
-console.log("=========================================");
-
-const pghost = process.env.PGHOST || "localhost";
-const pgport = Number(process.env.PGPORT) || 5432;
-const pguser = process.env.POSTGRES_USER;
-const pgpass = process.env.POSTGRES_PASSWORD;
-const pgdb = process.env.PGDATABASE;
-
-if (!pguser || !pgpass || !pgdb) {
-	console.error(
-		"🔴 Variables d'environnement manquantes (POSTGRES_USER, POSTGRES_PASSWORD, PGDATABASE)",
+if (!user || !password || !database) {
+	throw new Error(
+		"Variables PostgreSQL manquantes : PGUSER/POSTGRES_USER, PGPASSWORD/POSTGRES_PASSWORD et PGDATABASE/POSTGRES_DB.",
 	);
-	process.exit(1);
 }
-
-console.log(`Connexion : ${pguser}@${pghost}:${pgport}/${pgdb}`);
 
 const initPool = new Pool({
-  host: pghost,
-  port: pgport,
-  user: pguser,
-  password: pgpass,
-  database: pgdb,
+	host,
+	port,
+	user,
+	password,
+	database,
 });
 
-const IGNORE_CODES = new Set(["42710", "42P07", "42701", "42P06"]);
+function startDatabaseContainer(): Promise<void> {
+	return new Promise((resolve, reject) => {
+		const docker = spawn("docker", ["compose", "up", "-d", "--wait"], {
+			cwd: projectRoot,
+			stdio: "inherit",
+		});
 
-interface PgError extends Error {
-  code: string;
+		docker.once("error", reject);
+		docker.once("close", (code) => {
+			if (code === 0) {
+				resolve();
+			} else {
+				reject(new Error(`docker compose s'est terminé avec le code ${code}`));
+			}
+		});
+	});
 }
 
-function isPgError(err: unknown): err is PgError {
-  return err instanceof Error && "code" in err;
+async function main(): Promise<void> {
+	let client: PoolClient | undefined;
+
+	try {
+		console.log("\n=========================================");
+		console.log("🔵 DÉMARRAGE DE LA BASE");
+		console.log("=========================================");
+		await startDatabaseContainer();
+		console.log(`Connexion PostgreSQL : ${user}@${host}:${port}/${database}`);
+
+		client = await initPool.connect();
+		await client.query(sql);
+		console.log("🟢 Schéma appliqué avec succès.");
+	} catch (error) {
+		console.error("🔴 Échec de l'initialisation de la base :", error);
+		process.exitCode = 1;
+	} finally {
+		client?.release();
+		await initPool.end();
+		console.log("=========================================\n");
+	}
 }
 
-function splitSql(rawSql: string): string[] {
-  const statements: string[] = [];
-  let current = "";
-  let inDollarQuote = false;
-  let dollarTag = "";
-  let i = 0;
-
-  while (i < rawSql.length) {
-    if (!inDollarQuote && rawSql[i] === "$") {
-      const end = rawSql.indexOf("$", i + 1);
-      if (end !== -1) {
-        const tag = rawSql.slice(i, end + 1);
-        inDollarQuote = true;
-        dollarTag = tag;
-        current += tag;
-        i = end + 1;
-        continue;
-      }
-    } else if (inDollarQuote && rawSql.startsWith(dollarTag, i)) {
-      current += dollarTag;
-      i += dollarTag.length;
-      inDollarQuote = false;
-      dollarTag = "";
-      continue;
-    }
-
-    if (!inDollarQuote && rawSql[i] === ";") {
-      const trimmed = current.trim();
-      if (trimmed.length > 0) statements.push(trimmed);
-      current = "";
-      i++;
-      continue;
-    }
-
-    current += rawSql[i];
-    i++;
-  }
-
-  const trimmed = current.trim();
-  if (trimmed.length > 0) statements.push(trimmed);
-
-  return statements;
-}
-
-const client = await initPool.connect();
-try {
-  const statements = splitSql(sql);
-
-  for (const statement of statements) {
-    try {
-      await client.query(statement);
-    } catch (err) {
-      if (isPgError(err) && IGNORE_CODES.has(err.code)) {
-        console.warn(`🟡  Ignoré (déjà existant) : ${err.message}`);
-      } else {
-        throw err;
-      }
-    }
-  }
-  console.log("🟢 Schéma appliqué avec succès.");
-} catch (err) {
-  console.error("🔴 Erreur lors de l'initialisation :", err);
-  process.exit(1);
-} finally {
-  client.release();
-  await initPool.end();
-  console.log("🟢 Connexion fermée.");
-  console.log("=========================================\n");
-}
+await main();
 ```
+
+`pg` transmet ici le fichier SQL complet à PostgreSQL. Ne pas découper le SQL avec une regex ou sur les points-virgules : les fonctions PL/pgSQL contiennent elles-mêmes des points-virgules et les chaînes peuvent contenir des `$`.
 <!-- ------------------------------------ -->
 # 05 - racine > Ajouter le script db:init au package.json
 ▷ Ajouter le script db:init au package.json racine.
@@ -324,7 +225,8 @@ healthRouter.get("/", async (_req: Request, res: Response) => {
 			db: "connected",
 			timestamp: new Date().toISOString(),
 		});
-	} catch {
+	} catch (error) {
+		console.error("🔴 Échec du contrôle PostgreSQL :", error);
 		res.status(500).json({
 			status: "error",
 			message: "Server is running",
@@ -402,7 +304,9 @@ Avant de lancer le serveur, s'assurer que le code est correct selon Biome.
 
 ```bash
 npm run fix
+```
 🔵 Sortie attendue
+```text
 > appStarter@1.0.0 fix
 > biome lint --write . && biome format --write .
 
@@ -413,31 +317,22 @@ Formatted 40 files in 34ms. No fixes applied.
 Si Biome signale des erreurs, les corriger avec npm run fix avant de continuer.
 <!-- ------------------------------------ -->
 # 09 - racine > Ajouter le script launcher liveApp
-Le script liveApp enchaîne les différents scripts de package.json et simule un environnement de production en local.
+Le script liveApp vérifie Docker, construit le frontend, démarre uniquement les services décrits dans le `docker-compose.yml` du projet, initialise la base et lance les serveurs de développement. Démarrez Docker Desktop avant d'exécuter le script.
 
 ```markdown
 
-- Nettoyage des services PostgreSQL en arrière-plan (postgresql-x64-16, postgresql-x64-15, pgAdmin4)
-- Fermeture des processus actifs (postgres.exe, pgAdmin4.exe, docker-proxy.exe)
-- Libération des ports critiques (5432 pour PostgreSQL, 5050 pour pgAdmin)
-- Arrêt et suppression de tous les conteneurs Docker existants
-- Exécution de docker system prune pour nettoyer les volumes et images inutilisées
-- Suppression des réseaux Docker orphelins
-- Démarrage de Docker Desktop via le fichier exécutable
-- Attente de la disponibilité de Docker (jusqu'à 40 tentatives avec intervalle de 3 secondes)
-- En cas d'échec : réparation forcée de WSL (wsl --shutdown, désenregistrement et mise à jour)
-- Redémarrage de Docker après réparation WSL
-- Exécution de docker compose down pour libérer les ports et réseaux
-- Détection et fermeture des conteneurs parasites sur les ports critiques
-- Build de la web app en mode production avec npm run build -w web
+- Vérification de Docker Desktop sans arrêter d'autres services ou conteneurs
+- Attente de la disponibilité de Docker (limite et intervalle configurables par variables d'environnement)
+- Build du package `shared/`, puis build de la web app en mode production
 - Lancement des conteneurs Docker via docker compose up -d --build
-- Attente que PostgreSQL soit prêt à accepter les connexions (jusqu'à 40 tentatives avec intervalle de 2,5 secondes)
-- Stabilisation de la base de données (délai de 3 secondes)
+- Attente que PostgreSQL soit prêt à accepter les connexions
 - Initialisation du schéma de données avec npm run db:init
 - Lancement du serveur de développement (npm run dev -w server)
 - Lancement de l'application web de développement (npm run dev -w web)
 - Gestion propre de l'arrêt des processus au signal SIGINT/SIGTERM
 ```
+
+Le launcher ne tue aucun processus, ne libère pas les ports de force, ne supprime pas de volumes et ne réinitialise pas WSL. Si un port configuré est déjà occupé, Docker Compose affiche l'erreur : arrêtez uniquement le service concerné vous-même ou choisissez un autre port dans les fichiers `.env`.
 ▷ Ajouter le script liveApp au package.json racine.
 
 ```bash
@@ -451,7 +346,7 @@ npm pkg set scripts.liveApp="npx tsx setup/liveApp.ts"
 ```bash
 npm run liveApp
 ```
-🔵 Sortie attendue
+🔵 Exemple de sortie avec les valeurs locales par défaut
 ```text
 > appStarter@1.0.0 liveApp
 > npx tsx setup/liveApp.ts
@@ -460,32 +355,27 @@ npm run liveApp
 🔵 LAUNCHER - liveApp
    Simulator live Local
 ══════════════════════════════════════════════════
-Étape 0
-🔵 Nettoyage des ports et services...
-🟢 Port 5050 libéré
-🟢 Nettoyage terminé.
-══════════════════════════════════════════════════
 Étape 1
-🔵 Nettoyage des processus Docker...
-🟡 Docker Desktop n'est pas actif. Le nettoyage ignoré.
-🔵 Note : Docker sera démarré à l'étape suivante.
+🔵 Aucun nettoyage global Docker n'est effectué.
+🟢 Les autres conteneurs et volumes sont préservés.
 ══════════════════════════════════════════════════
 Étape 2
-🔵 Démarrage de Docker Desktop...
-🔵 Initialisation en cours...
+🔵 Vérification de Docker Desktop...
+🟡 Si Docker n'est pas actif, démarrez-le manuellement puis relancez le launcher.
 ══════════════════════════════════════════════════
 Étape 3
 🔵 Vérification de l'état de Docker...
 🟡 Docker en attente (1/40)
 🟡 Docker en attente (2/40)
 🟢 Docker est opérationnel !
-🔵 Libération des ports et purge du cache réseau...
-🔵 Parasite détecté sur port 5432 (ff2d23f54ef7). Fermeture...
-🔵 Parasite détecté sur port 5050 (3f5fed792fdb). Fermeture...
-🟢 Réseaux et ports nettoyés avec succès.
 ══════════════════════════════════════════════════
 Étape 4
 🔵 Compilation des applications...
+
+> appStarter@1.0.0 build:shared
+> npm run build -w shared
+
+... compilation de shared ...
 
 > web@0.0.0 build
 > tsc -b && vite build
@@ -526,18 +416,10 @@ dist/assets/index-BKR2AEY9.js   505.30 kB │ gzip: 153.28 kB
 
 
 =========================================
-🔵 DOCKER
-=========================================
-🟢 Tous les conteneurs sont prêts
-=========================================
-
-
-=========================================
 🔵 INIT BASE DE DONNÉES
 =========================================
-Connexion : cedevs@localhost:5432/appStarter
+Connexion PostgreSQL : <utilisateur>@<hôte>:<port>/<base>
 🟢 Schéma appliqué avec succès.
-🟢 Connexion fermée.
 =========================================
 
 
@@ -581,7 +463,7 @@ Connexion : cedevs@localhost:5432/appStarter
 Cette étape valide l'intégrité complète du monorepo. Elle contrôle la structure des répertoires, la conformité des package.json et la connectivité des services Docker.
 
 🟡 Attention
-Le script de vérification doit être lancé dans un second terminal pour le tester en conditions réelles, pendant que le launcher tourne dans le premier.
+Lancer le script dans un second terminal pendant que le launcher tourne. Il s'agit d'un diagnostic, pas d'une suite de tests applicatifs : les scripts `test` absents sont signalés comme ignorés. Vérifier les valeurs de port affichées dans le rapport avec les fichiers `.env` si elles ont été modifiées.
 
 ```markdown
 
@@ -595,7 +477,7 @@ Le script de vérification doit être lancé dans un second terminal pour le tes
 - Vérification de la structure du frontend mobile (mobile/)
 - Vérification de l'existence de docker-compose.yml et .gitignore
 - Détection de la structure monorepo (au moins 2 package.json)
-- Test de l'accessibilité de l'API backend (/api/health sur le port 3310)
+- Test de l'accessibilité de l'API backend sur le port `PORT` configuré dans `server/.env`
 - Vérification de la cohérence des ports entre server/.env et web/.env
 - Vérification de la cohérence de la base de données entre les configurations
 - Vérification que JWT_SECRET est robuste et que NODE_ENV est défini
@@ -605,8 +487,7 @@ Le script de vérification doit être lancé dans un second terminal pour le tes
 - Exécution de biome check sur tous les fichiers
 - Vérification de la compilation TypeScript avec tsc --noEmit
 - Vérification de l'existence des scripts npm (dev, build, start)
-- Vérification qu'il n'y a pas de console.log dans server/src
-- Exécution des tests avec npm test sur chaque workspace
+- Vérification des scripts npm test quand ils existent (un script absent est ignoré ; cela ne compte pas comme un test réussi)
 - Vérification que Git est initialisé (.git/ existe)
 - Mesure du temps de réponse de l'API (/api/health)
 - Mesure de la taille du build web (web/dist)
@@ -623,16 +504,16 @@ npx tsx setup/verify_monorepo/verify_monorepo.ts
 Un rapport détaillé est généré en Markdown dans setup/verify_monorepo/verify-report-date.md, mais aussi à la racine du monorepo pour documenter le dépôt GitHub.
 Le rapport peut être converti en PDF déjà stylé avec l'extension markdown-PDF.
 
-🟢 Tous les tests passent (100%) : "MONOREPO ENTIÈREMENT FONCTIONNEL !" → le monorepo est prêt à être utilisé.
+🟢 Aucun contrôle diagnostique n'a échoué : le monorepo est prêt pour les vérifications manuelles et les tests applicatifs.
 
 🔴 Certains tests échouent : consulter les détails en rouge pour identifier le problème (fichier manquant, port occupé, variable d'environnement non définie, etc.)
 
 🔵 Info
-- Frontend web : http://localhost:5173.
-- Backend API : http://localhost:3310/api/health.
-- pgAdmin : http://localhost:5050. Identifiants : définis dans le fichier .env racine.
+- Frontend web : `http://localhost:<WEB_PORT>` (`WEB_PORT` vaut 5173 par défaut dans le `.env` racine).
+- Backend API : `http://localhost:<PORT>/api/health` (`PORT` vaut 3310 par défaut dans `server/.env`).
+- pgAdmin : `http://localhost:<PGADMIN_PORT>` (`PGADMIN_PORT` vaut 5050 par défaut dans le `.env` racine). Identifiants définis dans ce même fichier.
 
-🔵 Sortie attendue
+🔵 Exemple de rapport avec les valeurs locales par défaut
 ```text
 ╔═════════════════════╗
 ║ CODE QUALITY REPORT ║
@@ -712,7 +593,7 @@ Heure : 01/04/2026 14:00:00
   NODE_ENV défini (server) ... ✓ OK
   .env dans .gitignore ... ✓ OK
   .env.sample présent ... ✓ OK
-  CORS CLIENT_URL non wildcard ... ⚠ Non configuré (ignoré)
+  CORS CLIENT_URL non wildcard ... ✓ OK (http://localhost:5173)
 
 ⚙  QUALITÉ DU CODE
 --------------------------------------------------
@@ -724,13 +605,12 @@ Heure : 01/04/2026 14:00:00
   Script "start" dans server/package.json ... ✓ OK
   Script "dev" dans web/package.json ... ✓ OK
   Script "build" dans web/package.json ... ✓ OK
-  Pas de console.log dans server/src ... ✓ OK
 
 ⚙  TESTS
 --------------------------------------------------
-  npm test (racine) ... ✓ OK
-  npm test (server) ... ✓ OK
-  npm test (web) ... ✓ OK
+  npm test (racine) ... à configurer : aucun test n'est défini dans le module de base
+  npm test (server) ... à configurer : aucun test n'est défini dans le module de base
+  npm test (web) ... à configurer : aucun test n'est défini dans le module de base
 
 📁  GIT / CI
 --------------------------------------------------
@@ -758,7 +638,7 @@ Heure : 01/04/2026 14:00:00
   >>Taux      : 93%
 
 ════════════════════════════════════════════════════════════
-🎉  MONOREPO ENTIÈREMENT FONCTIONNEL !
+ℹ  DIAGNOSTIC TERMINÉ — exécutez les tests applicatifs avant de conclure
 ════════════════════════════════════════════════════════════
 ```
 <!-- ------------------------------------ -->

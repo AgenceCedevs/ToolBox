@@ -18,11 +18,12 @@ Depuis la racine du monorepo.
 ▷ Vérifier que react-router@7 est bien présent dans web/package.json.
 
 ```bash
-cat web/package.json | grep react-router
+npm list react-router -w web --depth=0
 ```
 🔵 Sortie attendue
 ```text
-"react-router": "^7"
+web@0.0.0
+└── react-router@7.x
 ```
 🟡 Attention
 Si la version est inférieure à 7, mettre à jour :
@@ -77,7 +78,11 @@ function Footer() {
 			<p>
 				Tous droits réservés | site internet développé par{" "}
 				<strong>
-					<a href="https://cedevs.fr" target="_blank" rel="noreferrer">
+					<a
+						href="https://cedevs.fr"
+						target="_blank"
+						rel="noopener noreferrer"
+					>
 						cedevs.fr
 					</a>
 				</strong>{" "}
@@ -105,10 +110,16 @@ function Header() {
 			<Link to={constants.ROUTE_HOME} className="header-logo">
 				{import.meta.env.VITE_APP_NAME}
 			</Link>
-			<nav className="header-nav">
+			<nav className="header-nav" aria-label="Navigation principale">
 				<Link to={constants.ROUTE_HOME} className="header-nav-link">
 					Accueil
 				</Link>
+				<a href="#about" className="header-nav-link">
+					Le projet
+				</a>
+				<a href="#steps" className="header-nav-link">
+					Programme
+				</a>
 			</nav>
 		</header>
 	);
@@ -133,6 +144,9 @@ import Header from "../header/Header";
 function Layout() {
 	return (
 		<div className="app-wrapper">
+			<a className="skip-link" href="#main-content">
+				Aller au contenu principal
+			</a>
 			<Header />
 			<div className="main-content">
 				<Outlet />
@@ -164,7 +178,7 @@ export default Layout;
 
 .hp-eyebrow {
 	font-family: var(--font-mono);
-	font-size: 0.68rem;
+	font-size: 0.75rem;
 	letter-spacing: 0.18em;
 	text-transform: uppercase;
 	color: var(--accent);
@@ -184,13 +198,19 @@ h2 {
 .hp-btn {
 	display: inline-flex;
 	align-items: center;
+	justify-content: center;
+	min-height: 44px;
 	gap: 0.4rem;
 	padding: 0.8rem 1.6rem;
 	border-radius: var(--radius);
 	font-size: 0.95rem;
 	font-weight: 700;
 	text-decoration: none;
-	transition: all 0.18s ease;
+	transition:
+		background-color 0.18s ease,
+		border-color 0.18s ease,
+		box-shadow 0.18s ease,
+		transform 0.18s ease;
 	cursor: pointer;
 	font-family: var(--font-sans);
 }
@@ -233,6 +253,7 @@ h2 {
 	text-align: center;
 	overflow: hidden;
 	min-height: 100vh;
+	min-height: 100svh;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -281,12 +302,11 @@ h2 {
 	border: 1px solid rgba(255, 255, 255, 0.25);
 	border-radius: 100px;
 	font-family: var(--font-mono);
-	font-size: 0.68rem;
+	font-size: 0.75rem;
 	letter-spacing: 0.12em;
-	color: rgba(255, 255, 255, 0.85);
+	color: var(--white);
 	background: rgba(255, 255, 255, 0.1);
 	margin-bottom: 2rem;
-	animation: fadeDown 0.6s ease both;
 }
 
 .hp-hero__title {
@@ -296,7 +316,6 @@ h2 {
 	letter-spacing: -0.04em;
 	margin: 0 0 1.5rem;
 	color: var(--white);
-	animation: fadeDown 0.6s 0.1s ease both;
 }
 
 .hp-hero__title-accent {
@@ -306,11 +325,10 @@ h2 {
 .hp-hero__sub {
 	font-size: 1.1rem;
 	line-height: 1.75;
-	color: rgba(255, 255, 255, 0.75);
+	color: var(--white);
 	max-width: 580px;
 	margin: 0 auto 2.5rem;
 	font-weight: 400;
-	animation: fadeDown 0.6s 0.2s ease both;
 }
 
 .hp-hero__cta {
@@ -319,7 +337,6 @@ h2 {
 	justify-content: center;
 	flex-wrap: wrap;
 	margin-bottom: 3.5rem;
-	animation: fadeDown 0.6s 0.3s ease both;
 }
 
 .hp-hero .hp-btn--primary {
@@ -349,7 +366,6 @@ h2 {
 	align-items: center;
 	justify-content: center;
 	gap: 2.5rem;
-	animation: fadeDown 0.6s 0.4s ease both;
 }
 
 .hp-stat {
@@ -366,27 +382,25 @@ h2 {
 }
 
 .hp-stat__lbl {
-	font-size: 0.72rem;
-	color: rgba(255, 255, 255, 0.6);
+	font-size: 0.8rem;
+	color: var(--white);
 	text-transform: uppercase;
 	letter-spacing: 0.1em;
 }
 
-.hp-stat__sep {
-	width: 1px;
-	height: 36px;
-	background: rgba(255, 255, 255, 0.2);
+.hp-stat + .hp-stat {
+	position: relative;
 }
 
-@keyframes fadeDown {
-	from {
-		opacity: 0;
-		transform: translateY(-14px);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
+.hp-stat + .hp-stat::before {
+	position: absolute;
+	top: 50%;
+	left: -1.25rem;
+	width: 1px;
+	height: 36px;
+	transform: translateY(-50%);
+	background: rgba(255, 255, 255, 0.2);
+	content: "";
 }
 
 /* ── ABOUT ── */
@@ -446,14 +460,14 @@ h2 {
 
 .hp-feature-card h3 {
 	display: block;
-	font-size: 0.88rem;
+	font-size: 1rem;
 	font-weight: 700;
 	margin: 0 0 0.35rem;
 	color: var(--text);
 }
 
 .hp-feature-card p {
-	font-size: 0.8rem;
+	font-size: 0.9rem;
 	color: var(--muted);
 	line-height: 1.55;
 	margin: 0;
@@ -475,18 +489,11 @@ h2 {
 }
 
 .hp-chapter {
-	display: flex;
-	flex-direction: column;
 	border: 1.5px solid var(--border);
 	border-radius: var(--radius);
-	overflow: hidden;
 	background: var(--bg2);
 	box-shadow: 0 2px 16px rgba(0, 102, 102, 0.05);
 	border-bottom: 1px solid var(--border);
-}
-
-.hp-chapter:last-child {
-	border-bottom: none;
 }
 
 .hp-chapter__trigger {
@@ -494,28 +501,34 @@ h2 {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+	min-height: 64px;
 	gap: 1.5rem;
 	padding: 1.2rem 1.5rem;
 	background: var(--bg2);
 	border: none;
 	cursor: pointer;
+	list-style: none;
 	text-align: left;
-	transition: background 0.15s;
+	transition: background-color 0.15s;
 	color: var(--text);
 	font-family: var(--font-sans);
+}
+
+.hp-chapter__trigger::-webkit-details-marker {
+	display: none;
 }
 
 .hp-chapter__trigger:hover {
 	background: var(--bg3);
 }
 
-.hp-chapter--open .hp-chapter__trigger {
+.hp-chapter[open] .hp-chapter__trigger {
 	background: var(--accent-light);
 }
 
 .hp-chapter__num {
 	font-family: var(--font-mono);
-	font-size: 0.68rem;
+	font-size: 0.75rem;
 	font-weight: 700;
 	color: var(--accent);
 	padding: 0.2rem 0.5rem;
@@ -536,17 +549,15 @@ h2 {
 	flex: 1;
 }
 
-.hp-chapter__header-info h3 {
-	font-size: 0.93rem;
+.hp-chapter__header-info [role="heading"] {
+	font-size: 1rem;
 	font-weight: 700;
 	color: var(--text);
-	margin: 0;
 }
 
-.hp-chapter__header-info p {
-	font-size: 0.78rem;
+.hp-chapter__header-info > span:last-child {
+	font-size: 0.9rem;
 	color: var(--muted);
-	margin: 0;
 	line-height: 1.4;
 }
 
@@ -559,7 +570,7 @@ h2 {
 
 .hp-chapter__count {
 	font-family: var(--font-mono);
-	font-size: 0.68rem;
+	font-size: 0.75rem;
 	color: var(--muted);
 	background: var(--bg3);
 	padding: 0.2rem 0.5rem;
@@ -568,19 +579,19 @@ h2 {
 }
 
 .hp-chapter__chevron {
-	font-size: 0.6rem;
+	font-size: 1rem;
 	color: var(--muted);
+	transition: transform 0.15s ease;
 }
 
-.hp-chapter--open .hp-chapter__chevron {
+.hp-chapter[open] .hp-chapter__chevron {
 	color: var(--accent);
+	transform: rotate(180deg);
 }
 
 .hp-chapter__content {
 	background: var(--bg);
 	border-top: 1px solid var(--border);
-	display: flex;
-	flex-direction: column;
 }
 
 .hp-module {
@@ -602,7 +613,7 @@ h2 {
 
 .hp-module__id {
 	font-family: var(--font-mono);
-	font-size: 0.62rem;
+	font-size: 0.75rem;
 	color: var(--accent);
 	flex-shrink: 0;
 	padding-top: 0.15rem;
@@ -616,14 +627,14 @@ h2 {
 
 .hp-module h4 {
 	display: block;
-	font-size: 0.84rem;
+	font-size: 1rem;
 	font-weight: 700;
 	margin: 0 0 0.15rem;
 	color: var(--text);
 }
 
 .hp-module p {
-	font-size: 0.77rem;
+	font-size: 0.9rem;
 	color: var(--muted);
 	margin: 0;
 	line-height: 1.45;
@@ -684,14 +695,14 @@ h2 {
 }
 
 .hp-prereq__description {
-	font-size: 0.76rem;
+	font-size: 0.9rem;
 	color: var(--muted);
 	flex: 1;
 }
 
 .hp-prereq__tag {
 	font-family: var(--font-mono);
-	font-size: 0.6rem;
+	font-size: 0.75rem;
 	padding: 0.2rem 0.55rem;
 	border-radius: 4px;
 	flex-shrink: 0;
@@ -713,12 +724,12 @@ h2 {
 
 .hp-prereq__tag--ext {
 	background: #fff4e8;
-	color: #c2620a;
+	color: #8a3f00;
 	border: 1px solid #f5d4b0;
 }
 
 .hp-prereq__note {
-	font-size: 0.82rem;
+	font-size: 0.9rem;
 	color: var(--muted);
 	padding: 0.85rem 1.1rem;
 	background: var(--bg3);
@@ -773,7 +784,7 @@ h2 {
 }
 
 .hp-stack__pill-cat {
-	font-size: 0.58rem;
+	font-size: 0.75rem;
 	text-transform: uppercase;
 	letter-spacing: 0.12em;
 	color: var(--muted);
@@ -819,7 +830,7 @@ h2 {
 }
 
 .hp-cta p {
-	color: rgba(255, 255, 255, 0.72);
+	color: var(--white);
 	font-size: 1.05rem;
 	line-height: 1.7;
 	margin-bottom: 2.5rem;
@@ -840,7 +851,7 @@ h2 {
 	font-size: 0.8rem;
 	margin-top: 1.25rem;
 	margin-bottom: 0;
-	color: rgba(255, 255, 255, 0.45);
+	color: var(--white);
 }
 
 /* ── RESPONSIVE ── */
@@ -860,8 +871,8 @@ h2 {
 		gap: 1.5rem;
 	}
 
-	.hp-chapter__header-info p {
-		display: none;
+	.hp-stat + .hp-stat::before {
+		left: -0.75rem;
 	}
 
 	.hp-module {
@@ -870,12 +881,35 @@ h2 {
 }
 
 @media (max-width: 480px) {
+	.hp-section-inner {
+		padding-right: 1rem;
+		padding-left: 1rem;
+	}
+
 	.hp-about__cards {
 		grid-template-columns: 1fr;
 	}
 
 	.hp-hero__title {
 		font-size: 2.4rem;
+	}
+
+	.hp-chapter__trigger {
+		gap: 0.75rem;
+		padding: 1rem;
+	}
+
+	.hp-chapter__header-actions {
+		gap: 0.5rem;
+	}
+
+	.hp-chapter__count {
+		font-size: 0.75rem;
+	}
+
+	.hp-module {
+		padding-right: 1rem;
+		padding-left: 1rem;
 	}
 }
 ```
@@ -954,7 +988,6 @@ export default Seo;
 
 ```tsx
 
-import { useState } from "react";
 import Seo from "../../components/seo/Seo";
 import "./HomePage.css";
 
@@ -1304,46 +1337,42 @@ const prereqs = [
 ];
 
 function ChapterAccordion({ chapter }: { chapter: Chapter }) {
-	const [open, setOpen] = useState(false);
-
 	return (
-		<article className={`hp-chapter ${open ? "hp-chapter--open" : ""}`}>
-			<header>
-				<button
-					className="hp-chapter__trigger"
-					onClick={() => setOpen(!open)}
-					type="button"
-					aria-expanded={open}
-					aria-controls={`chapter-${chapter.id}`}
-				>
-					<span className="hp-chapter__num">{chapter.id}</span>
-					<div className="hp-chapter__header-info">
-						<h3>{chapter.title}</h3>
-						<p>{chapter.desc}</p>
-					</div>
-					<div className="hp-chapter__header-actions">
-						<span className="hp-chapter__count">
-							{chapter.modules.length} module
-							{chapter.modules.length > 1 ? "s" : ""}
-						</span>
-						<span className="hp-chapter__chevron">{open ? "▲" : "▼"}</span>
-					</div>
-				</button>
-			</header>
-			{open && (
-				<section id={`chapter-${chapter.id}`} className="hp-chapter__content">
-					{chapter.modules.map((module) => (
-						<article className="hp-module" key={module.id}>
-							<span className="hp-module__id">{module.id}</span>
-							<div className="hp-module__info">
-								<h4>{module.title}</h4>
-								<p>{module.description}</p>
-							</div>
-						</article>
-					))}
-				</section>
-			)}
-		</article>
+		<details className="hp-chapter">
+			<summary className="hp-chapter__trigger">
+				<span className="hp-chapter__num">{chapter.id}</span>
+				<span className="hp-chapter__header-info">
+					<span
+						id={`chapter-title-${chapter.id}`}
+						role="heading"
+						aria-level={3}
+					>
+						{chapter.title}
+					</span>
+					<span>{chapter.desc}</span>
+				</span>
+				<span className="hp-chapter__header-actions">
+					<span className="hp-chapter__count">
+						{chapter.modules.length} module
+						{chapter.modules.length > 1 ? "s" : ""}
+					</span>
+					<span className="hp-chapter__chevron" aria-hidden="true">
+						⌄
+					</span>
+				</span>
+			</summary>
+			<div className="hp-chapter__content">
+				{chapter.modules.map((module) => (
+					<article className="hp-module" key={module.id}>
+						<span className="hp-module__id">{module.id}</span>
+						<div className="hp-module__info">
+							<h4>{module.title}</h4>
+							<p>{module.description}</p>
+						</div>
+					</article>
+				))}
+			</div>
+		</details>
 	);
 }
 
@@ -1360,7 +1389,7 @@ function HomePage() {
 				ogDescription="Un parcours pratique pour créer une application web et mobile structurée, du frontend au déploiement."
 				image="/og-image.webp"
 			/>
-			<main className="hp-home">
+			<main className="hp-home" id="main-content" tabIndex={-1}>
 			{/* HERO SECTION */}
 			<section className="hp-hero">
 				<div className="hp-hero__noise" aria-hidden="true" />
@@ -1382,7 +1411,7 @@ function HomePage() {
 						comprendre en profondeur chaque brique jusqu'à une mise en
 						production complète.
 					</p>
-					<nav className="hp-hero__cta">
+					<nav className="hp-hero__cta" aria-label="Navigation dans la page">
 						<a href="#about" className="hp-btn hp-btn--primary">
 							Découvrir le projet
 						</a>
@@ -1395,12 +1424,10 @@ function HomePage() {
 							<dt className="hp-stat__lbl">Fiches</dt>
 							<dd className="hp-stat__num">{totalModules}</dd>
 						</div>
-						<span className="hp-stat__sep" aria-hidden="true" />
 						<div className="hp-stat">
 							<dt className="hp-stat__lbl">Chapitres</dt>
 							<dd className="hp-stat__num">{chapters.length}</dd>
 						</div>
-						<span className="hp-stat__sep" aria-hidden="true" />
 						<div className="hp-stat">
 							<dt className="hp-stat__lbl">Codebase</dt>
 							<dd className="hp-stat__num">1</dd>
@@ -1491,7 +1518,7 @@ function HomePage() {
 					<h2>Le programme</h2>
 					<p className="hp-steps__sub">
 						{totalModules} modules regroupés en {chapters.length} chapitres.
-						Clique sur un chapitre pour voir le contenu.
+						Ouvrez un chapitre pour parcourir ses modules.
 					</p>
 				</header>
 				<div className="hp-section-inner">
@@ -1518,15 +1545,15 @@ function HomePage() {
 										{p.icon}
 									</span>
 									<span className="hp-prereq__name">{p.label}</span>
+									<span className={`hp-prereq__tag hp-prereq__tag--${p.type}`}>
+										{p.type === "cmd"
+											? "CLI"
+											: p.type === "ext"
+												? "Extension"
+												: "App"}
+									</span>
 								</dt>
 								<dd className="hp-prereq__description">{p.note}</dd>
-								<span className={`hp-prereq__tag hp-prereq__tag--${p.type}`}>
-									{p.type === "cmd"
-										? "CLI"
-										: p.type === "ext"
-											? "Extension"
-											: "App"}
-								</span>
 							</div>
 						))}
 					</dl>
@@ -1577,7 +1604,7 @@ function HomePage() {
 							étape.
 						</p>
 					</header>
-					<nav>
+					<nav aria-label="Navigation dans le programme">
 						<a href="#steps" className="hp-btn hp-btn--primary hp-btn--lg">
 							Voir les modules
 						</a>
@@ -1601,6 +1628,7 @@ export default HomePage;
 .nf {
 	position: relative;
 	min-height: 100vh;
+	min-height: 100svh;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -1656,7 +1684,7 @@ export default HomePage;
 
 .nf__sub {
 	font-size: 1rem;
-	color: rgba(255, 255, 255, 0.65);
+	color: var(--white);
 	margin: 0 0 2.5rem;
 	line-height: 1.6;
 }
@@ -1664,6 +1692,8 @@ export default HomePage;
 .nf__btn {
 	display: inline-flex;
 	align-items: center;
+	justify-content: center;
+	min-height: 44px;
 	gap: 0.4rem;
 	padding: 0.8rem 1.8rem;
 	background: var(--white);
@@ -1674,7 +1704,10 @@ export default HomePage;
 	text-decoration: none;
 	border-radius: var(--radius);
 	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-	transition: all 0.18s ease;
+	transition:
+		background-color 0.18s ease,
+		box-shadow 0.18s ease,
+		transform 0.18s ease;
 }
 
 .nf__btn:hover {
@@ -1706,13 +1739,15 @@ function NotFoundPage() {
 				path={pathname}
 				noIndex
 			/>
-			<main className="nf">
+			<main className="nf" id="main-content" tabIndex={-1}>
 				<div className="nf__grid" aria-hidden="true" />
 				<section className="nf__inner">
-					<span className="nf__code">404</span>
+					<span className="nf__code" aria-hidden="true">
+						404
+					</span>
 					<h1 className="nf__title">Page introuvable.</h1>
 					<p className="nf__sub">Cette page n'existe pas ou a été déplacée.</p>
-					<nav>
+					<nav aria-label="Navigation de la page introuvable">
 						<Link to="/" className="nf__btn">
 							Retour à l'accueil
 						</Link>
@@ -1756,8 +1791,6 @@ export default App;
 /* ──────────────────────────────────────────
    TOKENS
 ────────────────────────────────────────── */
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap");
-
 :root {
 	/* Colors */
 	--accent: #006666;
@@ -1785,8 +1818,8 @@ export default App;
 	--spacing-md: 2rem;
 
 	/* Fonts */
-	--font-sans: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
-	--font-mono: "Space Mono", monospace;
+	--font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+	--font-mono: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace;
 }
 
 /* ──────────────────────────────────────────
@@ -1804,6 +1837,7 @@ html,
 body,
 #root {
 	min-height: 100vh;
+	min-height: 100svh;
 	width: 100%;
 }
 
@@ -1820,6 +1854,7 @@ body {
 	display: flex;
 	flex-direction: column;
 	min-height: 100vh;
+	min-height: 100svh;
 }
 
 .main-content {
@@ -1827,6 +1862,32 @@ body {
 	width: 100%;
 	display: flex;
 	flex-direction: column;
+}
+
+.skip-link {
+	position: absolute;
+	top: 0.5rem;
+	left: 0.5rem;
+	z-index: 10;
+	padding: 0.75rem 1rem;
+	transform: translateY(-160%);
+	border-radius: var(--radius);
+	background: var(--white);
+	color: var(--accent-dark);
+	font-weight: 700;
+}
+
+.skip-link:focus {
+	transform: translateY(0);
+}
+
+:focus-visible {
+	outline: 3px solid currentColor;
+	outline-offset: 3px;
+}
+
+#main-content {
+	scroll-margin-top: 1rem;
 }
 
 /* ──────────────────────────────────────────
@@ -1846,6 +1907,9 @@ body {
 }
 
 .header-logo {
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
 	color: var(--white);
 	text-decoration: none;
 	font-weight: 700;
@@ -1853,10 +1917,14 @@ body {
 
 .header-nav {
 	display: flex;
+	flex-wrap: wrap;
 	gap: var(--spacing-sm);
 }
 
 .header-nav-link {
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
 	color: var(--white);
 	text-decoration: none;
 	border-bottom: 2px solid transparent;
@@ -1875,8 +1943,33 @@ body {
 	padding: var(--spacing-sm);
 	text-align: center;
 	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
 	justify-content: center;
 	gap: var(--spacing-sm);
+}
+
+@media (max-width: 480px) {
+	.header {
+		flex-wrap: wrap;
+		gap: 0.5rem 1rem;
+		padding: 0.75rem 1rem;
+	}
+
+	.header-nav {
+		gap: 0.25rem 0.75rem;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		scroll-behavior: auto !important;
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
 }
 ```
 
@@ -2216,9 +2309,9 @@ Cette commande racine compile d'abord `shared/`, puis lance Vite dans le workspa
 <!-- ------------------------------------ -->
 # 24 - web > Ajouter un prérendu HTML facultatif
 
-Une application React classique envoie surtout une coquille HTML, puis construit son contenu dans le navigateur. Un prérendu peut produire un fichier HTML initial pour chaque route interne, ce qui aide les moteurs de recherche et les robots d'indexation qui lisent le HTML sans exécuter JavaScript. Cela ne garantit pas l'indexation par un moteur ou un service d'IA.
+Une application React classique envoie surtout une coquille HTML, puis construit son contenu dans le navigateur. Pour les pages publiques dont le référencement compte, le prérendu peut produire le HTML et les métadonnées par route avant leur livraison ; c'est préférable à une coquille vide, sans garantir l'indexation par un moteur ou un service d'IA.
 
-Cette étape est facultative et ajoute Puppeteer ainsi qu'un navigateur à l'environnement de build. Elle n'appelle aucun service externe et ne modifie aucun réglage d'hébergement. Pour les sites qui n'ont pas besoin de HTML statique par route, passer directement à l'étape 24.
+Cette étape reste facultative : elle ajoute Puppeteer ainsi qu'un navigateur à l'environnement de build et peut augmenter la durée ou les contraintes du build. Elle n'appelle aucun service externe et ne modifie aucun réglage d'hébergement. Si le prérendu n'est pas activé, les métadonnées de `Seo` n'apparaissent dans le HTML qu'après l'exécution de JavaScript.
 
 ▷ Depuis la racine, installer Puppeteer et déclarer un script postbuild dans le workspace web.
 
@@ -2433,10 +2526,27 @@ Pour inclure une route qui n'est liée depuis aucune page, l'ajouter à `EXTRA_S
 npm run build -w web
 ```
 
-Vérifier que `web/dist/index.html` et les fichiers tels que `web/dist/une-route/index.html` contiennent le contenu rendu et une seule balise pour chaque métadonnée fournie par `Seo`. Les routes doivent être accessibles en production avec le fichier `index.html` du dossier correspondant ; configurer l'hébergeur pour servir ces fichiers avant tout fallback SPA. Ne pas prérendre de pages privées ou de contenu personnalisé par utilisateur.
+Vérifier que `web/dist/index.html` et les fichiers tels que `web/dist/une-route/index.html` contiennent le contenu rendu et une seule balise pour chaque métadonnée fournie par `Seo`. Les routes doivent être accessibles en production avec le fichier `index.html` du dossier correspondant ; configurer l'hébergeur pour servir ces fichiers avant tout fallback SPA. Le composant React 404 n'impose pas à lui seul un statut HTTP 404 : configurer et tester le comportement 404 de l'hébergeur. Ne pas prérendre de pages privées ou de contenu personnalisé par utilisateur.
 
 <!-- ------------------------------------ -->
-# 25 - racine > Sauvegarder les modifications
+# 25 - web > Vérifier les critères avant PageSpeed Insights
+
+▷ Construire le frontend depuis la racine pour détecter les erreurs de compilation.
+
+```bash
+npm run build -w web
+```
+
+▷ Tester le site construit ou déployé avant l'audit :
+
+- Parcourir la page uniquement au clavier ; vérifier l'ordre de tabulation, le lien « Aller au contenu principal » et le contour de focus visible.
+- Ouvrir et fermer chaque chapitre au clavier, puis vérifier que ses modules ne sont pas annoncés lorsqu'il est fermé.
+- Activer la préférence système de réduction des animations et vérifier que le contenu reste immédiatement lisible.
+- Vérifier l'affichage à 320 px de largeur et à fort zoom, sans défilement horizontal.
+- Lancer Lighthouse ou PageSpeed Insights en mobile et ordinateur sur l'URL de production ; traiter les diagnostics réels du build et du contenu plutôt que de viser un score garanti.
+
+<!-- ------------------------------------ -->
+# 26 - racine > Sauvegarder les modifications
 ▷ Ajouter les fichiers et commiter les modifications.
 
 ```bash

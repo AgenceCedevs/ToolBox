@@ -3,9 +3,9 @@ Ce module configure le backend Express en TypeScript, charge les variables d’e
 
 À la fin de ce module :
 
-- Le backend démarre sur http://localhost:3310 et se relance automatiquement à chaque sauvegarde.
+- Le backend démarre sur le port `PORT` configuré dans `server/.env` (3310 par défaut) et se relance automatiquement à chaque sauvegarde.
 - L’endpoint /api/health fournit un statut indiquant que le serveur fonctionne correctement.
-- CORS est configuré pour accepter les requêtes depuis le frontend sur http://localhost:5173.
+- CORS est configuré avec `CLIENT_URL` dans `server/.env` (http://localhost:5173 par défaut).
 - Biome valide le code sans erreur.
 <!-- ------------------------------------ -->
 # 01 - server > Vérifier les dépendances
@@ -15,8 +15,10 @@ Les dépendances du serveur ont déjà été déclarées dans server/package.jso
 ▷ Vérifier les dépendances installées dans le package server.
 
 ```bash
-npm list -w server | head -20
+npm list -w server --depth=0
+```
 🔵 Sortie attendue
+```text
 server@ /home/user/appStarter/server
 ├── bcrypt@latest
 ├── cookie-parser@latest
@@ -26,10 +28,12 @@ server@ /home/user/appStarter/server
 ├── jsonwebtoken@latest
 ├── multer@latest
 ├── pg@latest
-└── cloudinary@latest
+└── cloudinary@...
 ```
 🔵 Info
 Si une dépendance manque, la commande npm install à la racine l'installera. Ne relancer que si des lignes rouges apparaissent dans l'éditeur.
+
+Les ports et l'origine CORS sont des valeurs d'environnement. Si le port web change, mettre à jour `WEB_PORT` dans le `.env` racine, `CLIENT_URL` dans `server/.env` et `VITE_API_URL` dans `web/.env` en conséquence. Le proxy Vite lit le port backend depuis `server/.env`.
 
 <!-- ------------------------------------ -->
 # 02 - server > Créer les dossiers et fichiers avec touch

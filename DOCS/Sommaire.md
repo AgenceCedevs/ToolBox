@@ -15,7 +15,8 @@
   - [01 Initialisation d'un monorepo](Code/AppStarter/01_Initialisation%20d'un%20monorepo.md)
   - [02 Structure frontend](Code/AppStarter/02_Structure%20frontend.md)
   - [03 Structure backend](Code/AppStarter/03_Structure%20backend.md)
-  - [04 - Base de données](Code/AppStarter/04%20-%20Base%20de%20donn%C3%A9es.md)
+  - [04 Base de données](Code/AppStarter/04_Base_de_donn%C3%A9es.md)
+  - [05 Déploiement production](Code/AppStarter/05_D%C3%A9ploiement_production.md)
 
 - **Css**
   - [Regle de base](Code/Css/Regle_de_base.md)
