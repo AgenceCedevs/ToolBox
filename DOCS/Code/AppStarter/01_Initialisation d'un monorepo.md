@@ -1557,7 +1557,8 @@ git init
 git add .
 ```
 <!-- ------------------------------------ -->
----
+<img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1000' height='8' preserveAspectRatio='none'><rect width='1000' height='8' rx='4' fill='%23007fa6'/></svg>" width="100%" height="8" alt="">
+
 ### 38 - racine > Commiter la structure initiale
 🟡 Attention
 Personnaliser le message de commit ci-dessous avant de lancer la commande.
