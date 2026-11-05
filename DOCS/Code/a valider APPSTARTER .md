@@ -1,0 +1,3 @@
+- les numerotations
+- les blocs de code si il y a pas des # ou autre qui traine
+- crrer la fiche 5 pour les branche main et dev pour deployement

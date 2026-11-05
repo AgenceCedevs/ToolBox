@@ -1,33 +1,31 @@
-04 - Base de données
+# 04 - Base de données
 Ce module installe une base de données PostgreSQL via Docker, initialise le schéma SQL et configure le pool de connexions côté backend. Une fois l’ensemble en place, le backend est automatiquement relié à la base de données.
 
 À la fin de ce module :
 
-Docker exécute un conteneur PostgreSQL accessible sur le port 5432.
-La route /api/health teste la connexion à la base de données.
-Le terminal affiche 🟢 Base de données connectée au démarrage du serveur.
-pgAdmin est accessible sur http://localhost:5050.
-Les étapes
-01 — server > Créer la structure database
+- Docker exécute un conteneur PostgreSQL accessible sur le port 5432.
+- La route /api/health teste la connexion à la base de données.
+- Le terminal affiche 🟢 Base de données connectée au démarrage du serveur.
+- pgAdmin est accessible sur http://localhost:5050.
+<!-- ------------------------------------ -->
+# 01 - server > Créer la structure database
 Créer le dossier server/src/database/ et les fichiers avec touch. Le contenu sera collé dans l'éditeur aux étapes suivantes.
 
 ▷ Créer les dossiers et fichiers vides.
 
-bash
-▼ Replier
-📋 Copier
+```bash
+
 mkdir -p server/src/database
 touch server/src/database/client.ts
 touch server/src/database/init-db.ts
-02 — server > database > script > Remplir schema.sql
+```
+<!-- ------------------------------------ -->
+# 02 - server > database > script > Remplir schema.sql
 Ce fichier définit la structure initiale de la base de données. Il sera exécuté lors de l'initialisation via npm run db:init.
 
 ▷ Ouvrir le fichier database/script/schema.sql et coller le contenu suivant.
 
-📄 database/script/schema.sql
-sql
-▼ Replier
-📋 Copier
+```sql
 -- ── Extensions ───────────────────────────────────────
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -69,18 +67,18 @@ VALUES (
 	'free'
 )
 ON CONFLICT (email) DO NOTHING;
+```
 🔵 Info
 Ce schéma crée une table users de base avec les champs essentiels. Des tables supplémentaires seront ajoutées plus tard dans les modules suivants.
 
-03 — server > src > database > Remplir client.ts
+<!-- ------------------------------------ -->
+# 03 - server > src > database > Remplir client.ts
 Le fichier client.ts exporte un pool de connexion PostgreSQL. Il est importé par tous les fichiers qui ont besoin d'accéder à la base de données.
 
 ▷ Ouvrir le fichier server/src/database/client.ts et coller le contenu suivant.
 
-📄 server/src/database/client.ts
-typescript
-▼ Replier
-📋 Copier
+```typescript
+
 import pg from "pg";
 
 const { Pool } = pg;
@@ -98,18 +96,18 @@ pool.on("error", (err) => {
 });
 
 export default pool;
+```
 🟡 Attention
 Les variables d'environnement suivent le standard PostgreSQL :PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE. Ces valeurs sont définies dans server/.env.
 
-04 — server > src > database > Remplir init-db.ts
+<!-- ------------------------------------ -->
+# 04 - server > src > database > Remplir init-db.ts
 Ce script lit le fichier schema.sql et l'exécute sur la base de données au démarrage. Il sera lancé avec npm run db:init.
 
 ▷ Ouvrir le fichier server/src/database/init-db.ts et coller le contenu suivant.
 
-📄 server/src/database/init-db.ts
-typescript
-▼ Replier
-📋 Copier
+```typescript
+
 import { execSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -295,22 +293,22 @@ try {
   console.log("🟢 Connexion fermée.");
   console.log("=========================================\n");
 }
-05 — racine > Ajouter le script db:init au package.json
+```
+<!-- ------------------------------------ -->
+# 05 - racine > Ajouter le script db:init au package.json
 ▷ Ajouter le script db:init au package.json racine.
 
-bash
-▼ Replier
-📋 Copier
+```bash
 npm pkg set scripts.db:init="npx tsx server/src/database/init-db.ts"
-06 — server > src > routes > Mettre à jour health.router.ts
+```
+<!-- ------------------------------------ -->
+# 06 - server > src > routes > Mettre à jour health.router.ts
 Mettre à jour la route health pour qu'elle teste également la connexion à la base de données.
 
 ▷ Ouvrir le fichier server/src/routes/health.router.ts et remplacer le contenu existant par le contenu suivant.
 
-📄 server/src/routes/health.router.ts
-typescript
-▼ Replier
-📋 Copier
+```typescript
+
 import type { Request, Response } from "express";
 import { Router } from "express";
 import pool from "../database/client.js";
@@ -337,15 +335,16 @@ healthRouter.get("/", async (_req: Request, res: Response) => {
 });
 
 export default healthRouter;
-07 — server > src > Mettre à jour index.ts
+```
+<!-- ------------------------------------ -->
+# 07 - server > src > Mettre à jour index.ts
 Mettre à jour le fichier server/src/index.ts pour tester la connexion à la base de données au démarrage.
 
 ▷ Ouvrir le fichier server/src/index.ts et remplacer le contenu existant par le contenu suivant.
 
-📄 server/src/index.ts
-typescript
-▼ Replier
-📋 Copier
+
+```typescript
+
 import cors from "cors";
 import "dotenv/config";
 import express from "express";
@@ -394,14 +393,14 @@ app.listen(PORT, async () => {
 });
 
 export default app;
-08 — racine > Vérifier avec Biome
+```
+<!-- ------------------------------------ -->
+# 08 - racine > Vérifier avec Biome
 Avant de lancer le serveur, s'assurer que le code est correct selon Biome.
 
 ▷ Corriger les éventuels problèmes de format et vérifier qu'aucune erreur ne subsiste.
 
-bash
-▼ Replier
-📋 Copier
+```bash
 npm run fix
 🔵 Sortie attendue
 > appStarter@1.0.0 fix
@@ -409,16 +408,15 @@ npm run fix
 
 Checked 40 files in 86ms. No fixes applied.
 Formatted 40 files in 34ms. No fixes applied.
+```
 🟡 Attention
 Si Biome signale des erreurs, les corriger avec npm run fix avant de continuer.
-
-09 — racine > Ajouter le script launcher liveApp
+<!-- ------------------------------------ -->
+# 09 - racine > Ajouter le script launcher liveApp
 Le script liveApp enchaîne les différents scripts de package.json et simule un environnement de production en local.
 
-📄 Liste des étapes
-markdown
-▼ Replier
-📋 Copier
+```markdown
+
 - Nettoyage des services PostgreSQL en arrière-plan (postgresql-x64-16, postgresql-x64-15, pgAdmin4)
 - Fermeture des processus actifs (postgres.exe, pgAdmin4.exe, docker-proxy.exe)
 - Libération des ports critiques (5432 pour PostgreSQL, 5050 pour pgAdmin)
@@ -439,25 +437,27 @@ markdown
 - Lancement du serveur de développement (npm run dev -w server)
 - Lancement de l'application web de développement (npm run dev -w web)
 - Gestion propre de l'arrêt des processus au signal SIGINT/SIGTERM
+```
 ▷ Ajouter le script liveApp au package.json racine.
 
-bash
-▼ Replier
-📋 Copier
+```bash
+
 npm pkg set scripts.liveApp="npx tsx setup/liveApp.ts"
-10 — racine > Lancer le launcher liveApp
+```
+<!-- ------------------------------------ -->
+# 10 - racine > Lancer le launcher liveApp
 ▷ Depuis la racine, lancer liveApppour démarrer l'environnement complet.
 
-bash
-▼ Replier
-📋 Copier
+```bash
 npm run liveApp
+```
 🔵 Sortie attendue
+```text
 > appStarter@1.0.0 liveApp
 > npx tsx setup/liveApp.ts
 
 ══════════════════════════════════════════════════
-🔵 LAUNCHER — liveApp
+🔵 LAUNCHER - liveApp
    Simulator live Local
 ══════════════════════════════════════════════════
 Étape 0
@@ -575,16 +575,16 @@ Connexion : cedevs@localhost:5432/appStarter
 🟢 Serveur démarré sur :  http://localhost:3310
 🟢 Base de données connectée
 =========================================
-11 — racine > Initialisation et vérification du monorepo
+```
+<!-- ------------------------------------ -->
+# 11 - racine > Initialisation et vérification du monorepo
 Cette étape valide l'intégrité complète du monorepo. Elle contrôle la structure des répertoires, la conformité des package.json et la connectivité des services Docker.
 
 🟡 Attention
 Le script de vérification doit être lancé dans un second terminal pour le tester en conditions réelles, pendant que le launcher tourne dans le premier.
 
-📄 Liste des vérifications
-markdown
-▼ Replier
-📋 Copier
+```markdown
+
 - Lecture du package.json pour récupérer le nom et la version du projet
 - Vérification des versions de Node.js, npm, Biome et détection des frameworks (React, Express, TypeScript, Vite)
 - Vérification que Docker et Docker Compose sont installés
@@ -613,29 +613,32 @@ markdown
 - Génération d'un rapport Markdown détaillé avec CSS intégré
 - Génération d'un pipeline CI GitHub Actions (.github/workflows/ci.yml)
 - Création d'un README avec les résultats du rapport
+```
 ▷ Ouvrir un second terminal et lancer le script de vérification depuis la racine du monorepo.
 
-bash
-▼ Replier
-📋 Copier
+```bash
 npx tsx setup/verify_monorepo/verify_monorepo.ts
+```
 🔵 Info
 Un rapport détaillé est généré en Markdown dans setup/verify_monorepo/verify-report-date.md, mais aussi à la racine du monorepo pour documenter le dépôt GitHub.
 Le rapport peut être converti en PDF déjà stylé avec l'extension markdown-PDF.
 
 🟢 Tous les tests passent (100%) : "MONOREPO ENTIÈREMENT FONCTIONNEL !" → le monorepo est prêt à être utilisé.
+
 🔴 Certains tests échouent : consulter les détails en rouge pour identifier le problème (fichier manquant, port occupé, variable d'environnement non définie, etc.)
+
 🔵 Info
-Frontend web : http://localhost:5173.
-Backend API : http://localhost:3310/api/health.
-pgAdmin : http://localhost:5050. Identifiants : définis dans le fichier .env racine.
+- Frontend web : http://localhost:5173.
+- Backend API : http://localhost:3310/api/health.
+- pgAdmin : http://localhost:5050. Identifiants : définis dans le fichier .env racine.
+
 🔵 Sortie attendue
+```text
 ╔═════════════════════╗
 ║ CODE QUALITY REPORT ║
 ╚═════════════════════╝
 
 Heure : 01/04/2026 14:00:00
-
 
 ℹ  INFORMATION DU PROJET
 --------------------------------------------------
@@ -744,7 +747,6 @@ Heure : 01/04/2026 14:00:00
 ✓ README : README.md
   README.md ... ⬡ GÉNÉRÉ
   Rapport setup/verify_monorepo/verify-report-2026-03-27.md ... ⬡ GÉNÉRÉ
-
 ════════════════════════════════════════════════════════════
 
 📊  RÉSUMÉ
@@ -756,14 +758,14 @@ Heure : 01/04/2026 14:00:00
   >>Taux      : 93%
 
 ════════════════════════════════════════════════════════════
-
 🎉  MONOREPO ENTIÈREMENT FONCTIONNEL !
 ════════════════════════════════════════════════════════════
-12 — racine > Sauvegarder les modifications
+```
+<!-- ------------------------------------ -->
+# 12 - racine > Sauvegarder les modifications
 ▷ Ajouter les fichiers et commiter les modifications.
 
-bash
-▼ Replier
-📋 Copier
+```bash
 git add .
 git commit -m "feat: description de vos modifications"
+```
