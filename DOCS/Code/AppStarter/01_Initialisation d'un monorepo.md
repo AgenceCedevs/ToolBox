@@ -1567,9 +1567,3 @@ Personnaliser le message de commit ci-dessous avant de lancer la commande.
 ```bash
 git commit -m "feat: Sauvegarde module 01"
 ```
-
-<style>
-h3 {
-  color: #2563eb;
-}
-</style>

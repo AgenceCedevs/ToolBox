@@ -2467,10 +2467,3 @@ Vérifier que `web/dist/index.html` et les fichiers tels que `web/dist/une-route
 git add .
 git commit -m "feat: description de vos modifications"
 ```
-
-
-<style>
-h3 {
-  color: #2563eb;
-}
-</style>
