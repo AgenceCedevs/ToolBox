@@ -118,6 +118,8 @@ node -e "require('fs').writeFileSync('tsconfig.json', JSON.stringify({
 mkdir -p web mobile shared/src
 cd web && npm init -y && cd ..
 cd mobile && npm init -y && npm pkg set dependencies.@appstarter/shared="*" && cd ..
+node -e "require('fs').writeFileSync('mobile/.env.sample', '# Expo app configuration\nEXPO_PUBLIC_APP_NAME=PENDING_APP_NAME\nEXPO_PUBLIC_API_URL=http://localhost:3310/api\n')"
+node -e "require('fs').copyFileSync('mobile/.env.sample', 'mobile/.env')"
 cd shared && npm init -y && npm pkg set name="@appstarter/shared" version="1.0.0" private=true type="module" main="./dist/cjs/index.js" module="./dist/esm/index.js" types="./dist/esm/index.d.ts" && cd ..
 node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('shared/package.json','utf8'));p.exports={'.':{types:'./dist/esm/index.d.ts',import:'./dist/esm/index.js',require:'./dist/cjs/index.js'}};fs.writeFileSync('shared/package.json',JSON.stringify(p,null,2))"
 node -e "const fs=require('fs');const base={target:'ES2020',strict:true,declaration:true,rootDir:'src'};fs.writeFileSync('shared/tsconfig.esm.json',JSON.stringify({compilerOptions:{...base,module:'ESNext',moduleResolution:'Bundler',outDir:'dist/esm'},include:['src/**/*']},null,2));fs.writeFileSync('shared/tsconfig.cjs.json',JSON.stringify({compilerOptions:{...base,module:'CommonJS',outDir:'dist/cjs'},include:['src/**/*']},null,2))"
@@ -127,6 +129,8 @@ printf 'export { constants } from "./constants.js";\n' > shared/src/index.ts
 touch shared/src/constants.ts
 ```
 Le fichier shared/src/index.ts est le point d'entrée public du package. Il réexporte les constantes stables et les types communs. Les fichiers package.json générés dans dist/ indiquent à Node quel format utiliser. Les imports applicatifs utiliseront `@appstarter/shared`, jamais un chemin relatif vers un autre workspace.
+
+Le workspace mobile reçoit ici un `.env.sample` minimal pour Expo et une copie locale `mobile/.env`. Cette configuration ne crée pas encore l'application Expo ; elle sera consommée quand Expo sera initialisé dans le workspace mobile. Les variables `EXPO_PUBLIC_*` sont intégrées au code client et ne doivent contenir aucun secret. Sur un appareil physique, remplacer `localhost` dans `EXPO_PUBLIC_API_URL` par l'adresse réseau de la machine de développement ; `localhost` désigne l'appareil lui-même.
 
 ▷ Ouvrir shared/write-build-metadata.cjs et coller le contenu suivant. Ce script marque les sorties compilées avec leur format de module, afin que Node et Vite les résolvent correctement.
 
@@ -251,7 +255,7 @@ npm pkg delete scripts.test
 ### 11 - racine > Créer .gitignore, .env.sample et .env
 - .gitignore indique à Git quels fichiers ne jamais envoyer sur GitHub.
 - .env.sample est un modèle de fichier .env ne contenant aucune donnée sensible. Les identifiants et mots de passe, comme la base de données ou la configuration locale, doivent être définis uniquement dans les fichiers .env locaux.
-- Le .env à la racine fournit à Docker Compose les variables PostgreSQL et pgAdmin. web/.env configure le frontend Vite et server/.env configure le serveur. Les exemples .env.sample peuvent être suivis par Git ; ne jamais y mettre de secret réel.
+- Le .env à la racine fournit à Docker Compose les variables PostgreSQL et pgAdmin. web/.env configure le frontend Vite, server/.env configure le serveur et mobile/.env configure l'application Expo. Les exemples .env.sample peuvent être suivis par Git ; ne jamais y mettre de secret réel.
 - POSTGRES_DB (utilisé par Docker) et PGDATABASE (utilisé par le serveur) doivent pointer vers la même base. PENDING_FOLDER_NAME sera remplacé à l'étape 34.
 
 ▷ Créer les fichiers .gitignore, .env.sample et .env avec leurs variables d'environnement et règles d'exclusion.
@@ -262,7 +266,7 @@ node -e "require('fs').writeFileSync('.env.sample', '# App\nNODE_ENV=development
 node -e "require('fs').copyFileSync('.env.sample', '.env')"
 ```
 
-Les règles `.env` et `.env.*` ignorent les fichiers d'environnement locaux à la racine et dans les workspaces. `!.env.sample` permet de versionner les modèles, notamment web/.env.sample et server/.env.sample.
+Les règles `.env` et `.env.*` ignorent les fichiers d'environnement locaux à la racine et dans les workspaces. `!.env.sample` permet de versionner les modèles, notamment web/.env.sample, server/.env.sample et mobile/.env.sample.
 
 ❌ Erreur fréquente
 Oublier de renseigner les vraies valeurs dans les fichiers .env locaux est problématique : l'application ne pourra pas se connecter correctement aux services. Ne remplacez les valeurs fictives que dans les .env ignorés par Git, jamais dans les .env.sample.
@@ -385,7 +389,7 @@ export const constants = {
 ```
 
 💡 Info
-Pour utiliser ces constantes stables dans un fichier TypeScript ou TSX d'une application, importer le package partagé : `import { constants } from "@appstarter/shared";`. Les valeurs sont exposées par shared/src/index.ts. Dans web/, lire par exemple le nom et l'URL de l'API depuis `import.meta.env.VITE_APP_NAME` et `import.meta.env.VITE_API_URL`. Dans server/, lire le nom et le port depuis `process.env.APP_NAME` et `process.env.PORT`. Ne pas lire les variables d'environnement dans shared/ : chaque application a son propre mécanisme et sa propre configuration. setup/ reste réservé aux scripts d'initialisation.
+Pour utiliser ces constantes stables dans un fichier TypeScript ou TSX d'une application, importer le package partagé : `import { constants } from "@appstarter/shared";`. Les valeurs sont exposées par shared/src/index.ts. Dans web/, lire par exemple le nom et l'URL de l'API depuis `import.meta.env.VITE_APP_NAME` et `import.meta.env.VITE_API_URL`. Dans server/, lire le nom et le port depuis `process.env.APP_NAME` et `process.env.PORT`. Dans l'application mobile Expo, lire le nom et l'URL de l'API depuis `process.env.EXPO_PUBLIC_APP_NAME` et `process.env.EXPO_PUBLIC_API_URL`. Expo expose les variables préfixées par `EXPO_PUBLIC_` au code client : ne jamais y placer de secret. Ne pas lire les variables d'environnement dans shared/ : chaque application a son propre mécanisme et sa propre configuration. setup/ reste réservé aux scripts d'initialisation.
 
 <!-- ------------------------------------ -->
 ---
@@ -772,7 +776,7 @@ main();
 <!-- ------------------------------------ -->
 ---
 ### 17 - setup > Remplir update-package-name.ts
-Ce script lit le nom du dossier racine, remplace les valeurs provisoires dans shared/src/constants.ts et les fichiers .env (dont POSTGRES_DB et PGDATABASE), puis génère un JWT_SECRET aléatoire et sécurisé pour le serveur. Il vérifie d'abord que tous les fichiers requis existent et s'arrête clairement si l'un d'eux manque.
+Ce script lit le nom du dossier racine, remplace les noms d'application provisoires dans les fichiers .env et les valeurs provisoires de base de données (POSTGRES_DB et PGDATABASE), puis génère un JWT_SECRET aléatoire et sécurisé pour le serveur. Il ne modifie pas shared/src/constants.ts : les noms et URL varient selon le projet et l'environnement. Le script vérifie d'abord que tous les fichiers requis existent et s'arrête clairement si l'un d'eux manque.
 
 ▷ Ouvrir le fichier setup/update-package-name.ts et coller le contenu suivant.
 
@@ -784,7 +788,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const rootFolderName = path.basename(path.resolve());
-const requiredFiles = ["server/.env", "web/.env", ".env"];
+const requiredFiles = ["server/.env", "web/.env", "mobile/.env", ".env"];
 const missingFiles = requiredFiles.filter((file) => !fs.existsSync(path.resolve(file)));
 if (missingFiles.length > 0) {
 	throw new Error(`Fichiers requis introuvables : ${missingFiles.join(", ")}. Lancez ce script depuis la racine après avoir créé ces fichiers.`);
@@ -826,6 +830,11 @@ function updateEnv(envPath: string): void {
 			hasChanges = true;
 			return `VITE_APP_NAME=${appName}`;
 		}
+		if (line.startsWith("EXPO_PUBLIC_APP_NAME=PENDING_APP_NAME")) {
+			console.log(`   EXPO_PUBLIC_APP_NAME : "PENDING_APP_NAME" → "${appName}"`);
+			hasChanges = true;
+			return `EXPO_PUBLIC_APP_NAME=${appName}`;
+		}
 		if (line.startsWith("APP_NAME=PENDING_APP_NAME")) {
 			console.log(`   APP_NAME : "PENDING_APP_NAME" → "${appName}"`);
 			hasChanges = true;
@@ -849,6 +858,7 @@ function updateEnv(envPath: string): void {
 
 updateEnv(path.resolve("server/.env"));
 updateEnv(path.resolve("web/.env"));
+updateEnv(path.resolve("mobile/.env"));
 updateEnv(path.resolve(".env"));
 console.log(`
 =========================
@@ -1346,7 +1356,7 @@ npm pkg set devDependencies.@types/node="latest"
 Le fichier web/.env.sample contient uniquement des valeurs fictives et peut être versionné. Renseigner les clés réelles dans web/.env, qui est ignoré par Git. Les variables préfixées par VITE_ sont exposées au code frontend : n'y placer aucun secret.
 
 ```bash
-node -e "require('fs').writeFileSync('.env.sample', '# App\nVITE_APP_NAME=PENDING_APP_NAME\nVITE_APP_DESCRIPTION=Description de l application\nVITE_APP_URL=http://localhost:5173\n\n# API\nVITE_API_URL=http://localhost:3310/api\n\n# EmailJS (optionnel)\nVITE_EMAILJS_SERVICE_ID=PENDING_EMAILJS\nVITE_EMAILJS_TEMPLATE_ID=PENDING_EMAILJS\nVITE_EMAILJS_PUBLIC_KEY=PENDING_EMAILJS\n')"
+node -e "require('fs').writeFileSync('.env.sample', '# App\nVITE_APP_NAME=PENDING_APP_NAME\nVITE_APP_URL=http://localhost:5173\n\n# API\nVITE_API_URL=http://localhost:3310/api\n\n# EmailJS (optionnel)\nVITE_EMAILJS_SERVICE_ID=PENDING_EMAILJS\nVITE_EMAILJS_TEMPLATE_ID=PENDING_EMAILJS\nVITE_EMAILJS_PUBLIC_KEY=PENDING_EMAILJS\n')"
 node -e "require('fs').copyFileSync('.env.sample', '.env')"
 cd ..
 ```
@@ -1454,7 +1464,7 @@ Oublier de renseigner les vraies valeurs dans le fichier .env est problématique
 <!-- ------------------------------------ -->
 ---
 ### 34 - racine > Lancer update-package-name.ts
-Ce script initialise les valeurs propres au projet uniquement dans les fichiers .env : le nom d'application dans server/.env et web/.env, le nom de projet et de base de données dans .env et server/.env, et un JWT_SECRET dans server/.env. Il ne modifie pas shared/src/constants.ts ; les paramètres sont lus par chaque application depuis son environnement.
+Ce script initialise les valeurs propres au projet dans les fichiers .env : le nom d'application dans server/.env, web/.env et mobile/.env, le nom du projet et de la base de données dans .env et server/.env, et un JWT_SECRET dans server/.env. Il ne modifie pas shared/src/constants.ts ; les paramètres sont lus par chaque application depuis son environnement.
 
 ▷ Revenir à la racine du monorepo et lancer ce script update-package-name.ts.
 
@@ -1476,6 +1486,8 @@ npx tsx setup/update-package-name.ts
 🟢 server/.env mis à jour
    VITE_APP_NAME : "PENDING_APP_NAME" → "app Starter"
 🟢 web/.env mis à jour
+   EXPO_PUBLIC_APP_NAME : "PENDING_APP_NAME" → "app Starter"
+🟢 mobile/.env mis à jour
    PROJECT_NAME : PENDING_FOLDER_NAME → appstarter
    POSTGRES_DB : PENDING_FOLDER_NAME → appstarter
    PGDATABASE : PENDING_FOLDER_NAME → appstarter
@@ -1486,10 +1498,10 @@ npx tsx setup/update-package-name.ts
 ==========================
 ```
 💡 Info
-Si le script est relancé après un premier passage, il affiche qu'aucun remplacement n'est nécessaire. C'est normal : les valeurs ont déjà été remplacées et le JWT_SECRET existant est conservé. Le script vérifie d'abord que server/.env, web/.env et .env existent ; en cas de fichier manquant, il s'arrête avec une erreur.
+Si le script est relancé après un premier passage, il affiche qu'aucun remplacement n'est nécessaire. C'est normal : les valeurs ont déjà été remplacées et le JWT_SECRET existant est conservé. Le script vérifie d'abord que server/.env, web/.env, mobile/.env et .env existent ; en cas de fichier manquant, il s'arrête avec une erreur.
 
 ❌ Erreur fréquente
-Si le terminal signale un fichier .env requis introuvable, vérifier que la commande est lancée depuis la racine du monorepo et que les étapes 11, 28 et 33 ont été effectuées. Taper pwd pour vérifier le dossier courant.
+Si le terminal signale un fichier .env requis introuvable, vérifier que la commande est lancée depuis la racine du monorepo et que les étapes 06, 11, 28 et 33 ont été effectuées. Taper pwd pour vérifier le dossier courant.
 
 <!-- ------------------------------------ -->
 ---

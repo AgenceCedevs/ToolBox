@@ -910,6 +910,8 @@ interface SeoProps {
 	description: string;
 	path?: string;
 	image?: string;
+	ogTitle?: string;
+	ogDescription?: string;
 	noIndex?: boolean;
 }
 
@@ -918,10 +920,14 @@ function Seo({
 	description,
 	path,
 	image = "/og-image.webp",
+	ogTitle,
+	ogDescription,
 	noIndex = false,
 }: SeoProps) {
 	const siteUrl = new URL(import.meta.env.VITE_APP_URL);
 	const fullTitle = `${title} | ${import.meta.env.VITE_APP_NAME}`;
+	const socialTitle = ogTitle ?? fullTitle;
+	const socialDescription = ogDescription ?? description;
 	const canonicalUrl = path ? new URL(path, siteUrl).toString() : undefined;
 	const imageUrl = new URL(image, siteUrl).toString();
 
@@ -936,8 +942,8 @@ function Seo({
 			{canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
 			<meta property="og:type" content="website" />
 			{canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
-			<meta property="og:title" content={fullTitle} />
-			<meta property="og:description" content={description} />
+			<meta property="og:title" content={socialTitle} />
+			<meta property="og:description" content={socialDescription} />
 			<meta property="og:image" content={imageUrl} />
 		</Helmet>
 	);
@@ -946,7 +952,7 @@ function Seo({
 export default Seo;
 ```
 
-`image` peut être un chemin depuis `web/public/` ou une URL absolue. Le composant utilise `/og-image.webp` par défaut : ajouter le fichier correspondant dans `web/public/`, ou modifier cette valeur par défaut pour pointer vers une image existante. Une page peut fournir une image différente avec la propriété `image`.
+`image` peut être un chemin depuis `web/public/` ou une URL absolue. Le composant utilise `/og-image.webp` par défaut : ajouter le fichier correspondant dans `web/public/`, ou modifier cette valeur par défaut pour pointer vers une image existante. Une page peut fournir une image différente avec la propriété `image`. `ogTitle` et `ogDescription` sont facultatifs ; lorsqu'ils ne sont pas fournis, ils reprennent le titre et la description de la page.
 
 <!-- ------------------------------------ -->
 ---
@@ -1355,9 +1361,12 @@ function HomePage() {
 	return (
 		<>
 			<Seo
-				title="Accueil"
-				description={import.meta.env.VITE_APP_DESCRIPTION}
+				title="Monorepo web et mobile"
+				description="Découvrez comment construire un monorepo web et mobile avec React, TypeScript, PostgreSQL et des outils modernes, étape par étape."
 				path="/"
+				ogTitle="AppStarter — Construire un monorepo web et mobile"
+				ogDescription="Un parcours pratique pour créer une application web et mobile structurée, du frontend au déploiement."
+				image="/og-image.webp"
 			/>
 			<main className="hp-home">
 			{/* HERO SECTION */}
@@ -1975,7 +1984,6 @@ touch web/src/vite-env.d.ts
 
 interface ImportMetaEnv {
 	readonly VITE_APP_NAME: string;
-	readonly VITE_APP_DESCRIPTION: string;
 	readonly VITE_APP_URL: string;
 	readonly VITE_API_URL: string;
 	readonly VITE_EMAILJS_SERVICE_ID: string;
@@ -2004,7 +2012,7 @@ declare module "*.svg" {
 ---
 ### 16 — web > Mettre à jour index.html
 
-Le index.html généré par Vite contient des références au logo Vite. Le remplacer par un document minimal avec le titre générique du site ; les métadonnées SEO propres à chaque page sont gérées par le composant `Seo`.
+Le index.html généré par Vite contient des références au logo Vite. Le remplacer par une version propre avec les métadonnées SEO de base, alimentées par les variables de web/.env définies au module 1.
 
 ▷ Ouvrir le fichier web/index.html et remplacer le contenu existant par le contenu suivant.
 
