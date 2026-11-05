@@ -12,7 +12,7 @@ Un monorepo est un seul dépôt qui contient le frontend (web/), le backend (ser
 - Toutes les dépendances npm sont installées, aucun npm install supplémentaire n'est nécessaire avant le prochain module.
 - Les fichiers de configuration (Docker, Biome, TypeScript, variables d'environnement) sont présents et prêts.
 ## Les étapes
-⚠️ Attention
+🟡 Attention
 Avant de commencer : À partir de l'étape 03, des dependence seront ajoutées aux package.json sans être installées immédiatement. Cela créera des fichiers en erreur dans l'éditeur comme tsconfig.json racine, setup/*.ts,etc.
 
 C'est normal et attendu ! À l'étape 36, un seul npm install à la racine installera TOUTES les dépendances et TOUS les problèmes disparaîtront d'un coup. Ne pas s'inquiéter des erreurs rouges avant cette étape.
@@ -20,7 +20,7 @@ C'est normal et attendu ! À l'étape 36, un seul npm install à la racine insta
 <!-- ------------------------------------ -->
 ---
 ### 01 - racine > Ouvrir Git bash et créer le dossier du monorepo
-⚠️ Attention
+🟡 Attention
 Le nom du dossier racine sert à initialiser PROJECT_NAME et le nom affiché de l'application dans les fichiers .env. Il est préférable de choisir un nom sans espaces ni caractères spéciaux, ici appStarter. Les applications lisent ces paramètres depuis leur environnement ; ils ne sont pas codés dans shared/src/constants.ts.
 
 ▷ Ouvrir Git bash, se placer dans le dossier ~/desktop/LOCAL où tous les projets sont stockés en local. Puis créer le dossier appStarter, y entrer et l'ouvrir immédiatement dans l'éditeur.
@@ -41,7 +41,7 @@ Une fois l'éditeur ouvert, ouvrir le terminal intégré avec Ctrl+ù. Toutes le
 ```bash
 npm init -y
 ```
-▶ Sortie attendue
+🔵 Sortie attendue
 
 ```text
 Wrote to ~/desktop/LOCAL/appStarter/package.json
@@ -149,7 +149,7 @@ Déclarer les workspaces npm permet à npm de relier automatiquement le package 
 
 ▷ Ajouter le champ workspaces au package.json racine listant web/, server/, mobile/ et shared/.
 
-💡 Info
+🔵 Info
 Vérifier que la modification a bien été appliquée en ouvrant package.json : le champ "workspaces" doit contenir ["web", "server", "mobile", "shared"].
 
 ```bash
@@ -163,7 +163,7 @@ Les scripts de développement compilent d'abord shared/, puis lancent les applic
 
 ▷ Ajouter les scripts dans le package.json racine.
 
-💡 Info
+🔵 Info
 - npm run dev : compile shared/, puis lance les deux processus en parallèle depuis la racine via les workspaces npm natifs.
 - npm run build:shared : compile shared/ en JavaScript et génère ses déclarations TypeScript.
 - npm run build : lance le script build de chaque workspace qui en possède un.
@@ -191,10 +191,10 @@ Configurer l'éditeur pour appliquer Biome automatiquement à chaque sauvegarde.
 
 ▷ Créer le dossier .vscode/ et son fichier de configuration.
 
-💡 Info
+🔵 Info
 À partir de là, chaque Ctrl+S formate le fichier, réorganise les imports et applique les corrections clean code automatiquement, sans avoir à lancer npm run fix manuellement.
 
-⚠️ Attention
+🟡 Attention
 .vscode/ sera ajouté au .gitignore à l'étape 11. Ce dossier contient une config personnelle qui ne doit pas être envoyée sur GitHub.
 
 ```bash
@@ -237,7 +237,7 @@ Les scripts dans setup/ utilisent la syntaxe import ES modules.
 
 ▷ Modifier le package.json pour déclarer le type ES module et nettoyer les champs inutiles.
 
-⚠️ Attention
+🟡 Attention
 S'assurer qu'il n'y a qu'un seul "type" dans le package.json. npm peut parfois ajouter "type": "commonjs", mais la commande npm pkg set type="module" le remplace normalement.
 
 ```bash
@@ -268,7 +268,7 @@ node -e "require('fs').copyFileSync('.env.sample', '.env')"
 
 Les règles `.env` et `.env.*` ignorent les fichiers d'environnement locaux à la racine et dans les workspaces. `!.env.sample` permet de versionner les modèles, notamment web/.env.sample, server/.env.sample et mobile/.env.sample.
 
-❌ Erreur fréquente
+🔴 Erreur fréquente
 Oublier de renseigner les vraies valeurs dans les fichiers .env locaux est problématique : l'application ne pourra pas se connecter correctement aux services. Ne remplacez les valeurs fictives que dans les .env ignorés par Git, jamais dans les .env.sample.
 
 <!-- ------------------------------------ -->
@@ -336,7 +336,7 @@ docker compose stop
 docker compose down
 ```
 
-⚠️ Attention
+🟡 Attention
 Ne pas ajouter `-v` à `docker compose down` pour un arrêt normal : cette option supprime aussi le volume PostgreSQL et donc les données de la base.
 
 <!-- ------------------------------------ -->
@@ -388,7 +388,7 @@ export const constants = {
 };
 ```
 
-💡 Info
+🔵 Info
 Pour utiliser ces constantes stables dans un fichier TypeScript ou TSX d'une application, importer le package partagé : `import { constants } from "@appstarter/shared";`. Les valeurs sont exposées par shared/src/index.ts. Dans web/, lire par exemple le nom et l'URL de l'API depuis `import.meta.env.VITE_APP_NAME` et `import.meta.env.VITE_API_URL`. Dans server/, lire le nom et le port depuis `process.env.APP_NAME` et `process.env.PORT`. Dans l'application mobile Expo, lire le nom et l'URL de l'API depuis `process.env.EXPO_PUBLIC_APP_NAME` et `process.env.EXPO_PUBLIC_API_URL`. Expo expose les variables préfixées par `EXPO_PUBLIC_` au code client : ne jamais y placer de secret. Ne pas lire les variables d'environnement dans shared/ : chaque application a son propre mécanisme et sa propre configuration. setup/ reste réservé aux scripts d'initialisation.
 
 <!-- ------------------------------------ -->
@@ -396,7 +396,7 @@ Pour utiliser ces constantes stables dans un fichier TypeScript ou TSX d'une app
 ### 16 - setup > Remplir liveApp.ts
 Ce fichier est un simulateur d'application qui automatise le démarrage complet de l'environnement local. Il gère le nettoyage des ports, le démarrage de Docker, l'attente de la base de données et le lancement des serveurs de développement en parallèle.
 
-⚠️ Attention
+🟡 Attention
 La création de ce fichier ne le lance pas. N'exécuter `npx tsx setup/liveApp.ts` depuis la racine qu'une fois le projet applicatif terminé et ses prérequis disponibles : Docker configuré, script `db:init` créé, packages installés et fichiers `.env` renseignés. Le launcher initialise Docker et la base, puis compile et démarre les applications. Pour un démarrage simple sans relancer toute cette séquence, utiliser `npm run dev` depuis la racine.
 
 ▷ Ouvrir le fichier setup/liveApp.ts et coller le contenu suivant.
@@ -1085,7 +1085,7 @@ try {
 }
 ```
 
-💡 Info
+🔵 Info
 Ces trois scripts s'utilisent depuis la racine du monorepo avec npx tsx.
 
 - npx tsx setup/exports_writings/export_writings_all.ts - export complet.
@@ -1131,7 +1131,7 @@ Erreurs de syntaxe, rejet de connexion, crash système.
 ### 22 - setup > verify_monorepo > Remplir verify_monorepo.ts
 Ce script de vérification teste l'intégrité du monorepo. Il contrôle la structure des dossiers, les dépendances npm, Docker, PostgreSQL, l'API, le build web et Git, puis génère un rapport Markdown. Il ne se lance pas automatiquement et n'est pas encore exécutable à cette étape : lancez-le après avoir terminé l'application et satisfait les prérequis ci-dessous.
 
-⚠️ Attention
+🟡 Attention
 Ne pas lancer ce script pendant le module 01 juste après `npm install`. Il échouera tant que l'API `/api/health` ne répond pas, que la table PostgreSQL `users` n'existe pas, que le build `web/dist/` n'a pas été créé ou que Git n'a pas été initialisé. Une fois l'application et la base prêtes, démarrer Docker et l'API, créer le build web, puis lancer la vérification depuis la racine :
 
 ```bash
@@ -1268,7 +1268,7 @@ mkdir -p mobile/src/components/Header mobile/src/components/Footer mobile/src/pa
 ### 24 - web > Créer le frontend avec Vite
 ▷ Initialiser le projet frontend React TypeScript avec Vite dans le dossier web/.
 
-⚠️ Attention
+🟡 Attention
 Cette commande peut déclencher trois questions interactives dans le terminal. Lancez-la seule. Le terminal attendra vos réponses avant de poursuivre.
 
 
@@ -1289,10 +1289,10 @@ Question 3 : Install with npm and start now?
 
 - Sélectionner No avec la touche fléchée.
 
-❌ Erreur fréquente
+🔴 Erreur fréquente
 À la question 3, ne pas sélectionner Yes. Vite installe les dépendances ET lance le serveur immédiatement, le terminal se bloque. Si cela arrive, appuyer sur Ctrl+C, puis exécuter rm -rf web et recommencer.
 
-▶ Sortie attendue
+🔵 Sortie attendue
 ```text
 ◇  Scaffolding project in C:\Users\Cédric\desktop\LOCAL\appStarter\web...
 
@@ -1360,7 +1360,7 @@ node -e "require('fs').writeFileSync('.env.sample', '# App\nVITE_APP_NAME=PENDIN
 node -e "require('fs').copyFileSync('.env.sample', '.env')"
 cd ..
 ```
-❌ Erreur fréquente
+🔴 Erreur fréquente
 Oublier de renseigner les vraies valeurs dans le fichier .env est problématique. L'application ne pourra pas se connecter correctement aux services comme la base de données et risque de ne pas fonctionner.
 
 <!-- ------------------------------------ -->
@@ -1372,7 +1372,7 @@ Oublier de renseigner les vraies valeurs dans le fichier .env est problématique
 
 mkdir server && cd server && npm init -y
 ```
-💡 Info
+🔵 Info
 Vérifier que server/package.json a bien été créé avant de continuer.
 
 <!-- ------------------------------------ -->
@@ -1415,7 +1415,7 @@ npm pkg set dependencies.multer="latest"
 npm pkg set dependencies.cloudinary="latest"
 npm pkg set devDependencies.@types/multer="latest"
 ```
-⚠️ Attention
+🟡 Attention
 cloudinary SDK v2+ inclut ses types. Ne pas installer @types/cloudinary.
 
 <!-- ------------------------------------ -->
@@ -1458,7 +1458,7 @@ Le fichier server/.env.sample est un modèle sans secret réel ; compléter les 
 node -e "require('fs').writeFileSync('.env.sample', '# App\nAPP_NAME=PENDING_APP_NAME\nPORT=3310\nNODE_ENV=development\n\n# Auth\nJWT_SECRET=PENDING_JWT_SECRET\n\n# PostgreSQL\nPGHOST=localhost\nPGPORT=5432\nPOSTGRES_USER=postgres_user\nPOSTGRES_PASSWORD=postgres_password\nPOSTGRES_DB=PENDING_FOLDER_NAME\nPGDATABASE=PENDING_FOLDER_NAME\n\n# EmailJS\nEMAILJS_SERVICE_ID=PENDING_EMAILJS\nEMAILJS_TEMPLATE_ID_REGISTER=PENDING_EMAILJS\nEMAILJS_PRIVATE_KEY=PENDING_EMAILJS\nEMAILJS_PUBLIC_KEY=PENDING_EMAILJS\n\n# Cloudinary\nCLOUDINARY_CLOUD_NAME=PENDING_CLOUDINARY\nCLOUDINARY_API_KEY=PENDING_CLOUDINARY\nCLOUDINARY_API_SECRET=PENDING_CLOUDINARY\n')"
 node -e "require('fs').copyFileSync('.env.sample', '.env')"
 ```
-❌ Erreur fréquente
+🔴 Erreur fréquente
 Oublier de renseigner les vraies valeurs dans le fichier .env est problématique. L'application ne pourra pas se connecter correctement aux services comme la base de données et risque de ne pas fonctionner.
 
 <!-- ------------------------------------ -->
@@ -1472,7 +1472,7 @@ Ce script initialise les valeurs propres au projet dans les fichiers .env : le n
 cd ..
 npx tsx setup/update-package-name.ts
 ```
-▶ Sortie attendue
+🔵 Sortie attendue
 ```text
 =========================
 🔵 AUTO-CONFIG PROJECT
@@ -1497,10 +1497,10 @@ npx tsx setup/update-package-name.ts
 🟢 CONFIGURATION TERMINÉE
 ==========================
 ```
-💡 Info
+🔵 Info
 Si le script est relancé après un premier passage, il affiche qu'aucun remplacement n'est nécessaire. C'est normal : les valeurs ont déjà été remplacées et le JWT_SECRET existant est conservé. Le script vérifie d'abord que server/.env, web/.env, mobile/.env et .env existent ; en cas de fichier manquant, il s'arrête avec une erreur.
 
-❌ Erreur fréquente
+🔴 Erreur fréquente
 Si le terminal signale un fichier .env requis introuvable, vérifier que la commande est lancée depuis la racine du monorepo et que les étapes 06, 11, 28 et 33 ont été effectuées. Taper pwd pour vérifier le dossier courant.
 
 <!-- ------------------------------------ -->
@@ -1514,7 +1514,7 @@ Avant de lancer le serveur, s'assurer que le code est bien formaté selon Biome.
 
 npm run format
 ```
-▶ Sortie attendue
+🔵 Sortie attendue
 ```text
 > appStarter@1.0.0 format
 > biome format --write .
@@ -1536,7 +1536,7 @@ npm run build:shared
 npm ls @appstarter/shared --workspaces
 ```
 La compilation génère les versions ESM et CommonJS dans shared/dist/. La commande de vérification doit afficher @appstarter/shared dans les workspaces web, server et mobile. Le dossier shared/node_modules n'est pas nécessaire : npm relie le package dans le node_modules racine.
-▶ Sortie attendue
+🔵 Sortie attendue
 ```text
 added 201 packages, and audited 205 packages in 25s
 
@@ -1559,7 +1559,7 @@ git add .
 <!-- ------------------------------------ -->
 ---
 ### 38 - racine > Commiter la structure initiale
-⚠️ Attention
+🟡 Attention
 Personnaliser le message de commit ci-dessous avant de lancer la commande.
 
 ▷ Committer la structure initiale.
@@ -1567,3 +1567,9 @@ Personnaliser le message de commit ci-dessous avant de lancer la commande.
 ```bash
 git commit -m "feat: Sauvegarde module 01"
 ```
+
+<style>
+h3 {
+  color: #2563eb;
+}
+</style>

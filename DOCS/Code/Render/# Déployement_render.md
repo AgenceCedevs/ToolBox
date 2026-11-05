@@ -2,7 +2,7 @@ Déploiement-Render
 Section 1 - Objectif
 Cette fiche te guide pour déployer ton projet sur deux environnements Render distincts : un site officiel de production branché sur main, et un site de validation client branché sur dev. Chaque push sur l'une ou l'autre branche déclenchera automatiquement un redéploiement sur l'environnement correspondant.
 
-💡 Info
+🔵 Info
 Prérequis : avoir terminé la fiche F99-T-02 — Publication sur GitHub(dépôt GitHub avec les branches main et dev configurées). Tu dois aussi avoir un compte sur render.com.
 
 Architecture des deux environnements
@@ -40,13 +40,13 @@ Branch           : main               ← IMPORTANT : branche de production
 Build Command    : cd client && npm install && npm run build
 Publish Directory: client/dist
 Auto-Deploy      : Yes                (redéploie automatiquement à chaque push sur main)
-💡 Info
+🔵 Info
 Le champ Name définit l'URL de ton site : si tu mets monprojet, l'adresse sera monprojet.onrender.com. Choisis un nom clair et professionnel.
 
 2.4 — Render > Lancer le premier déploiement
 Clique sur Create Static Site. Render va cloner ton dépôt, exécuter la commande de build et déployer le résultat. Surveille les logs pour voir la progression — ça prend généralement 1 à 3 minutes.
 
-💡 Info
+🔵 Info
 Dans les logs, tu dois voir apparaître la ligne Build successfulpuis Deploy live. Si tu vois une erreur, lis le message — c'est souvent une dépendance manquante ou un chemin incorrect.
 
 2.5 — Render > Configurer la redirection SPA
@@ -62,7 +62,7 @@ Source     : /*
 Destination: /index.html
 Action     : Rewrite
 Clique sur Save Changes
-⚠️ Attention
+🟡 Attention
 Sans cette règle Rewrite, un utilisateur qui va directement sur monprojet.onrender.com/dashboard verra une page 404 blanche. C'est parce que Render cherche un fichier dashboard/index.htmlqui n'existe pas — React gère les routes côté client, pas côté serveur.
 
 2.6 — Render > Vérifier le site de production
@@ -86,7 +86,7 @@ Branch           : dev                ← IMPORTANT : branche de développement
 Build Command    : cd client && npm install && npm run build
 Publish Directory: client/dist
 Auto-Deploy      : Yes
-💡 Info
+🔵 Info
 L'URL du site de staging sera monprojet-dev.onrender.com. C'est cette adresse que tu partageras avec ton client pour la validation, jamais l'adresse de production.
 
 3.3 — Render > Configurer la redirection SPA sur le site staging
@@ -117,7 +117,7 @@ git checkout dev
 git add .
 git commit -m "test: modification pour tester le déploiement staging"
 git push origin dev
-💡 Info
+🔵 Info
 Dans le dashboard Render, tu dois voir le site monprojet-devpasser en statut In progress puis Live après 1-3 minutes. Le site monprojet (production) lui, ne doit pas bouger.
 
 4.2 — Tester le déploiement du site de production (main)
@@ -159,10 +159,10 @@ text
 📋 Copier
 VITE_API_URL    = https://ton-api-dev.onrender.com/api
 NODE_ENV        = staging
-⚠️ Attention
+🟡 Attention
 Pour les Static Sites React avec Vite, seules les variables préfixées par VITE_sont accessibles dans le code frontend. Les autres sont ignorées par Vite au moment du build.
 
-💡 Info
+🔵 Info
 Après avoir ajouté ou modifié des variables d'environnement sur Render, tu dois redéclencher manuellement un déploiement pour que les changements soient pris en compte. Clique sur Manual Deploy > Deploy latest commit.
 
 Section 6 - Résumé des deux environnements

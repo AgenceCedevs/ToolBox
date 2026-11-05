@@ -22,11 +22,11 @@ Depuis la racine du monorepo.
 ```bash
 cat web/package.json | grep react-router
 ```
-▶ Sortie attendue
+🔵 Sortie attendue
 ```text
 "react-router": "^7"
 ```
-⚠️ Attention
+🟡 Attention
 Si la version est inférieure à 7, mettre à jour :
 
 ```bash
@@ -1892,7 +1892,7 @@ body {
 }
 ```
 
-💡 Info
+🔵 Info
 Les règles html, body, #root garantissent que l'élément root occupe toute la hauteur du viewport, ce qui est essentiel pour que le layout flexbox fonctionne correctement.
 
 <!-- ------------------------------------ -->
@@ -2190,7 +2190,7 @@ rm -rf web/src/assets/hero.png web/src/assets/react.svg web/src/assets/vite.svg 
 ```bash
 npm run fix
 ```
-▶ Sortie attendue
+🔵 Sortie attendue
 
 ```text
 > appStarter2@1.0.0 fix
@@ -2199,7 +2199,7 @@ npm run fix
 Checked 37 files in 100ms. No fixes applied.
 Formatted 36 files in 40ms. Fixed 1 file.
 ```
-⚠️ Attention
+🟡 Attention
 Si Biome signale des erreurs, les corriger avant de continuer. La plupart sont des erreurs de format résolues automatiquement par npm run fix.
 
 <!-- ------------------------------------ -->
@@ -2212,7 +2212,7 @@ Si Biome signale des erreurs, les corriger avant de continuer. La plupart sont d
 npm run dev:web
 ```
 Cette commande racine compile d'abord `shared/`, puis lance Vite dans le workspace web. Le serveur Express n'est pas démarré par cette commande ; le proxy `/api` ne répondra donc que si le serveur est lancé séparément ou si l'étape de démarrage complet du module 1 est utilisée.
-▶ Sortie attendue
+🔵 Sortie attendue
 ```text
 > appStarter@1.0.0 dev:web
 > npm run build:shared && npm run dev -w web
@@ -2467,3 +2467,10 @@ Vérifier que `web/dist/index.html` et les fichiers tels que `web/dist/une-route
 git add .
 git commit -m "feat: description de vos modifications"
 ```
+
+
+<style>
+h3 {
+  color: #2563eb;
+}
+</style>
