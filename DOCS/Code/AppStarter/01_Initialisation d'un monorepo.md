@@ -114,6 +114,7 @@ node -e "require('fs').writeFileSync('tsconfig.json', JSON.stringify({
 <!-- ------------------------------------ -->
 ---
 # 06 - racine > Créer les dossiers web/, mobile/ et shared/
+
 ▷ Créer les dossiers web/, mobile/ et shared/, puis initialiser les packages npm de ces workspaces. Le package partagé produit une version ESM pour Vite et une version CommonJS pour le serveur.
 
 ```bash
@@ -130,8 +131,10 @@ cd shared && npm pkg set scripts.build="tsc -p tsconfig.esm.json && tsc -p tscon
 printf 'export { constants } from "./constants.js";\n' > shared/src/index.ts
 touch shared/src/constants.ts
 ```
+🔵 Info
 Le fichier shared/src/index.ts est le point d'entrée public du package. Il réexporte les constantes stables et les types communs. Les fichiers package.json générés dans dist/ indiquent à Node quel format utiliser. Les imports applicatifs utiliseront `@appstarter/shared`, jamais un chemin relatif vers un autre workspace.
 
+🟡 Attention
 Le workspace mobile reçoit ici un `.env.sample` minimal pour Expo et une copie locale `mobile/.env`. Cette configuration ne crée pas encore l'application Expo ; elle sera consommée quand Expo sera initialisé dans le workspace mobile. Les variables `EXPO_PUBLIC_*` sont intégrées au code client et ne doivent contenir aucun secret. Sur un appareil physique, remplacer `localhost` dans `EXPO_PUBLIC_API_URL` par l'adresse réseau de la machine de développement ; `localhost` désigne l'appareil lui-même.
 
 ▷ Ouvrir shared/write-build-metadata.cjs et coller le contenu suivant. Ce script marque les sorties compilées avec leur format de module, afin que Node et Vite les résolvent correctement.
