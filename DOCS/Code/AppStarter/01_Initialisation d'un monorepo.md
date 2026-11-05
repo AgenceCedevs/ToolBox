@@ -11,7 +11,9 @@ Un monorepo est un seul dépôt qui contient le frontend (web/), le backend (ser
 - Le package @appstarter/shared est déclaré et relié aux trois applications par les workspaces npm.
 - Toutes les dépendances npm sont installées, aucun npm install supplémentaire n'est nécessaire avant le prochain module.
 - Les fichiers de configuration (Docker, Biome, TypeScript, variables d'environnement) sont présents et prêts.
-## Les étapes
+
+# Les étapes
+
 🟡 Attention
 Avant de commencer : À partir de l'étape 03, des dependence seront ajoutées aux package.json sans être installées immédiatement. Cela créera des fichiers en erreur dans l'éditeur comme tsconfig.json racine, setup/*.ts,etc.
 
@@ -19,7 +21,7 @@ C'est normal et attendu ! À l'étape 36, un seul npm install à la racine insta
 
 <!-- ------------------------------------ -->
 ---
-### 01 - racine > Ouvrir Git bash et créer le dossier du monorepo
+# 01 - racine > Ouvrir Git bash et créer le dossier du monorepo
 🟡 Attention
 Le nom du dossier racine sert à initialiser PROJECT_NAME et le nom affiché de l'application dans les fichiers .env. Il est préférable de choisir un nom sans espaces ni caractères spéciaux, ici appStarter. Les applications lisent ces paramètres depuis leur environnement ; ils ne sont pas codés dans shared/src/constants.ts.
 
@@ -33,7 +35,7 @@ code .
 
 <!-- ------------------------------------ -->
 ---
-### 02 - racine > Initialiser npm et créer le fichier package.json
+# 02 - racine > Initialiser npm et créer le fichier package.json
 Une fois l'éditeur ouvert, ouvrir le terminal intégré avec Ctrl+ù. Toutes les commandes suivantes sont à lancer depuis ce terminal intégré.
 
 ▷ Initialiser npm à la racine pour générer un fichier package.json.
@@ -49,7 +51,7 @@ Wrote to ~/desktop/LOCAL/appStarter/package.json
 
 <!-- ------------------------------------ -->
 ---
-### 03 - racine > Ajouter les dépendances Concurrently et Biome
+# 03 - racine > Ajouter les dépendances Concurrently et Biome
 - concurrently : Exécuter plusieurs scripts npm simultanément.
 - @biomejs/biome : Linter et formateur de code unifié.
 - typescript : Compiler le package shared/ en JavaScript et déclarations TypeScript.
@@ -68,7 +70,7 @@ npm pkg set scripts.postinstall="node -e \"const v = require('@biomejs/biome/pac
 
 <!-- ------------------------------------ -->
 ---
-### 04 - racine > Créer le fichier de configuration biome.json
+# 04 - racine > Créer le fichier de configuration biome.json
 Ce fichier configure Biome pour ignorer node_modules, formater avec des tabulations et des guillemets doubles, et activer les règles recommandées. Sans lui, Biome scanne node_modules et peut se bloquer.
 
 ▷ Créer le fichier biome.json à la racine avec la configuration nécessaire.
@@ -90,7 +92,7 @@ require('fs').writeFileSync('biome.json', JSON.stringify({
 
 <!-- ------------------------------------ -->
 ---
-### 05 - racine > Créer tsconfig.json
+# 05 - racine > Créer tsconfig.json
 Les scripts dans setup/ sont en TypeScript et ont besoin d'un tsconfig.json racine.
 
 ▷ Créer le fichier tsconfig.json à la racine avec la configuration TypeScript nécessaire.
@@ -111,7 +113,7 @@ node -e "require('fs').writeFileSync('tsconfig.json', JSON.stringify({
 
 <!-- ------------------------------------ -->
 ---
-### 06 - racine > Créer les dossiers web/, mobile/ et shared/
+# 06 - racine > Créer les dossiers web/, mobile/ et shared/
 ▷ Créer les dossiers web/, mobile/ et shared/, puis initialiser les packages npm de ces workspaces. Le package partagé produit une version ESM pour Vite et une version CommonJS pour le serveur.
 
 ```bash
@@ -144,7 +146,7 @@ for (const [format, type] of [["esm", "module"], ["cjs", "commonjs"]]) {
 
 <!-- ------------------------------------ -->
 ---
-### 07 - racine > Déclarer les workspaces npm
+# 07 - racine > Déclarer les workspaces npm
 Déclarer les workspaces npm permet à npm de relier automatiquement le package shared/ aux applications locales, sans publier ni télécharger ce package depuis le registre npm.
 
 ▷ Ajouter le champ workspaces au package.json racine listant web/, server/, mobile/ et shared/.
@@ -158,7 +160,7 @@ node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.js
 
 <!-- ------------------------------------ -->
 ---
-### 08 - racine > Ajouter les scripts npm
+# 08 - racine > Ajouter les scripts npm
 Les scripts de développement compilent d'abord shared/, puis lancent les applications. Les scripts lint, fix et format gèrent la qualité du code avec Biome.
 
 ▷ Ajouter les scripts dans le package.json racine.
@@ -186,7 +188,7 @@ npm pkg set scripts.format="biome format --write ."
 
 <!-- ------------------------------------ -->
 ---
-### 09 - racine > Créer settings.json pour VSCode
+# 09 - racine > Créer settings.json pour VSCode
 Configurer l'éditeur pour appliquer Biome automatiquement à chaque sauvegarde.
 
 ▷ Créer le dossier .vscode/ et son fichier de configuration.
@@ -232,7 +234,7 @@ fs.writeFileSync('.vscode/settings.json', JSON.stringify({
 
 <!-- ------------------------------------ -->
 ---
-### 10 - racine > Configurer package.json en ES modules
+# 10 - racine > Configurer package.json en ES modules
 Les scripts dans setup/ utilisent la syntaxe import ES modules.
 
 ▷ Modifier le package.json pour déclarer le type ES module et nettoyer les champs inutiles.
@@ -252,7 +254,7 @@ npm pkg delete scripts.test
 
 <!-- ------------------------------------ -->
 ---
-### 11 - racine > Créer .gitignore, .env.sample et .env
+# 11 - racine > Créer .gitignore, .env.sample et .env
 - .gitignore indique à Git quels fichiers ne jamais envoyer sur GitHub.
 - .env.sample est un modèle de fichier .env ne contenant aucune donnée sensible. Les identifiants et mots de passe, comme la base de données ou la configuration locale, doivent être définis uniquement dans les fichiers .env locaux.
 - Le .env à la racine fournit à Docker Compose les variables PostgreSQL et pgAdmin. web/.env configure le frontend Vite, server/.env configure le serveur et mobile/.env configure l'application Expo. Les exemples .env.sample peuvent être suivis par Git ; ne jamais y mettre de secret réel.
@@ -273,7 +275,7 @@ Oublier de renseigner les vraies valeurs dans les fichiers .env locaux est probl
 
 <!-- ------------------------------------ -->
 ---
-### 12 - racine > Créer le fichier docker-compose.yml
+# 12 - racine > Créer le fichier docker-compose.yml
 Le fichier docker-compose.yml contient des guillemets doubles qui ne peuvent pas être échappés proprement dans node -e sur le terminal.
 
 ▷ Créer le fichier docker-compose.yml avec touch.
@@ -284,7 +286,7 @@ touch docker-compose.yml
 
 <!-- ------------------------------------ -->
 ---
-### 13 - racine > Ajouter le contenu à docker-compose.yml
+# 13 - racine > Ajouter le contenu à docker-compose.yml
 ▷ Ouvrir le fichier docker-compose.yml et coller le contenu suivant.
 
 
@@ -341,7 +343,7 @@ Ne pas ajouter `-v` à `docker compose down` pour un arrêt normal : cette optio
 
 <!-- ------------------------------------ -->
 ---
-### 14 - setup > Créer les dossiers et fichiers setup
+# 14 - setup > Créer les dossiers et fichiers setup
 Les fichiers .ts sont créés avec touch et non via node -e.
 
 ▷ Créer les dossiers et fichiers vides. Le contenu sera collé dans l'éditeur aux étapes suivantes.
@@ -361,7 +363,7 @@ touch setup/exports_writings/export_writings_gitDiff.ts
 
 <!-- ------------------------------------ -->
 ---
-### 15 - shared > Remplir constants.ts
+# 15 - shared > Remplir constants.ts
 Ce fichier centralise uniquement les valeurs stables de l'application utilisées par web/, server/ et mobile/. Les paramètres qui peuvent varier selon le projet, l'environnement ou la plateforme (nom de l'application, URL d'API, ports, secrets, identifiants) doivent être lus depuis les variables d'environnement de chaque application, pas ajoutés ici. Le package partagé est compilé à l'étape 36, et ses exports sont accessibles avec `@appstarter/shared`.
 
 ▷ Ouvrir le fichier shared/src/constants.ts et coller le contenu suivant.
@@ -393,7 +395,7 @@ Pour utiliser ces constantes stables dans un fichier TypeScript ou TSX d'une app
 
 <!-- ------------------------------------ -->
 ---
-### 16 - setup > Remplir liveApp.ts
+# 16 - setup > Remplir liveApp.ts
 Ce fichier est un simulateur d'application qui automatise le démarrage complet de l'environnement local. Il gère le nettoyage des ports, le démarrage de Docker, l'attente de la base de données et le lancement des serveurs de développement en parallèle.
 
 🟡 Attention
@@ -775,7 +777,7 @@ main();
 
 <!-- ------------------------------------ -->
 ---
-### 17 - setup > Remplir update-package-name.ts
+# 17 - setup > Remplir update-package-name.ts
 Ce script lit le nom du dossier racine, remplace les noms d'application provisoires dans les fichiers .env et les valeurs provisoires de base de données (POSTGRES_DB et PGDATABASE), puis génère un JWT_SECRET aléatoire et sécurisé pour le serveur. Il ne modifie pas shared/src/constants.ts : les noms et URL varient selon le projet et l'environnement. Le script vérifie d'abord que tous les fichiers requis existent et s'arrête clairement si l'un d'eux manque.
 
 ▷ Ouvrir le fichier setup/update-package-name.ts et coller le contenu suivant.
@@ -869,7 +871,7 @@ console.log(`
 
 <!-- ------------------------------------ -->
 ---
-### 18 - setup > exports_writings > Remplir export_writings_all.ts
+# 18 - setup > exports_writings > Remplir export_writings_all.ts
 Ce script exporte tout le contenu du monorepo en un seul fichier Markdown. Utile pour collaborer avec d'autres développeurs ou donner du contexte à une IA en une seule opération.
 
 ▷ Ouvrir le fichier setup/exports_writings/export_writings_all.ts et coller le contenu suivant.
@@ -982,14 +984,14 @@ try {
 		if (isBinary(raw)) {
 			output += `\n<!-- ------------------------------------ -->
 ---
-### \`${rel}\`\n🟡 **Fichier ignoré (binaire)**\n`;
+# \`${rel}\`\n🟡 **Fichier ignoré (binaire)**\n`;
 			skippedCount++;
 			continue;
 		}
 
 		output += `\n<!-- ------------------------------------ -->
 ---
-### \`${rel}\`\n\`\`\`${detectLanguage(file)}\n${raw.toString("utf8")}\n\`\`\`\n`;
+# \`${rel}\`\n\`\`\`${detectLanguage(file)}\n${raw.toString("utf8")}\n\`\`\`\n`;
 		processedCount++;
 	}
 
@@ -1003,7 +1005,7 @@ try {
 
 <!-- ------------------------------------ -->
 ---
-### 19 - setup > exports_writings > Remplir export_writings_gitDiff.ts
+# 19 - setup > exports_writings > Remplir export_writings_gitDiff.ts
 Ce script exporte le git diff brut, les lignes exactes ajoutées et supprimées depuis le dernier commit.
 
 ▷ Ouvrir le fichier setup/exports_writings/export_writings_gitDiff.ts et coller le contenu suivant.
@@ -1035,7 +1037,7 @@ exec("git diff", (err: Error | null, stdout: string) => {
 
 <!-- ------------------------------------ -->
 ---
-### 20 - setup > exports_writings > Remplir export_writings_noCommit.ts
+# 20 - setup > exports_writings > Remplir export_writings_noCommit.ts
 Ce script exporte uniquement les fichiers modifiés ou non suivis par Git.
 
 ▷ Ouvrir le fichier setup/exports_writings/export_writings_noCommit.ts et coller le contenu suivant.
@@ -1068,14 +1070,14 @@ try {
 	if (modified.length > 0) {
 		for (const f of modified) { output += `\n<!-- ------------------------------------ -->
 ---
-### \`${f}\`\n\`\`\`${detectLanguage(f)}\n${fs.readFileSync(f, "utf8")}\n\`\`\`\n`; }
+# \`${f}\`\n\`\`\`${detectLanguage(f)}\n${fs.readFileSync(f, "utf8")}\n\`\`\`\n`; }
 	} else { output += "\n_Aucun fichier modifié._\n"; }
 
 	output += "\n## NOUVEAUX FICHIERS\n";
 	if (untracked.length > 0) {
 		for (const f of untracked) { output += `\n<!-- ------------------------------------ -->
 ---
-### \`${f}\`\n\`\`\`${detectLanguage(f)}\n${fs.readFileSync(f, "utf8")}\n\`\`\`\n`; }
+# \`${f}\`\n\`\`\`${detectLanguage(f)}\n${fs.readFileSync(f, "utf8")}\n\`\`\`\n`; }
 	} else { output += "\n_Aucun fichier non suivi._\n"; }
 
 	fs.writeFileSync(outputPath, output, "utf8");
@@ -1094,7 +1096,7 @@ Ces trois scripts s'utilisent depuis la racine du monorepo avec npx tsx.
 
 <!-- ------------------------------------ -->
 ---
-### 21 - setup > resources > Remplir resources.md
+# 21 - setup > resources > Remplir resources.md
 Ce dossier contient les fichiers annexes au monorepo qui ne font pas directement partie du code source.
 
 ▷ Ouvrir le fichier setup/resources/resources.md et coller le contenu suivant.
@@ -1128,7 +1130,7 @@ Erreurs de syntaxe, rejet de connexion, crash système.
 
 <!-- ------------------------------------ -->
 ---
-### 22 - setup > verify_monorepo > Remplir verify_monorepo.ts
+# 22 - setup > verify_monorepo > Remplir verify_monorepo.ts
 Ce script de vérification teste l'intégrité du monorepo. Il contrôle la structure des dossiers, les dépendances npm, Docker, PostgreSQL, l'API, le build web et Git, puis génère un rapport Markdown. Il ne se lance pas automatiquement et n'est pas encore exécutable à cette étape : lancez-le après avoir terminé l'application et satisfait les prérequis ci-dessous.
 
 🟡 Attention
@@ -1231,9 +1233,9 @@ async function verifyPerformance(): Promise<void> { logSection("PERFORMANCE", "c
 
 function addStackToMarkdown(): void { reportMarkdown += `## ${emoji.stack}  STACK TECHNIQUE\n\n`; reportMarkdown += `<!-- ------------------------------------ -->
 ---
-### 📦 Infos\n\n| Prop | Valeur |\n|------|--------|\n`; reportMarkdown += `| **Nom** | ${projectStack.PROJECT_NAME} |\n`; reportMarkdown += `| **Version** | ${projectStack.projectVersion} |\n\n`; reportMarkdown += `<!-- ------------------------------------ -->
+# 📦 Infos\n\n| Prop | Valeur |\n|------|--------|\n`; reportMarkdown += `| **Nom** | ${projectStack.PROJECT_NAME} |\n`; reportMarkdown += `| **Version** | ${projectStack.projectVersion} |\n\n`; reportMarkdown += `<!-- ------------------------------------ -->
 ---
-### 🛠 Outils\n\n| Outil | Version |\n|-------|---------|\n`; reportMarkdown += `| **Node.js** | ${projectStack.nodeVersion} |\n`; reportMarkdown += `| **npm** | ${projectStack.npmVersion} |\n`; reportMarkdown += `| **Biome** | ${projectStack.biomeVersion} |\n\n`; }
+# 🛠 Outils\n\n| Outil | Version |\n|-------|---------|\n`; reportMarkdown += `| **Node.js** | ${projectStack.nodeVersion} |\n`; reportMarkdown += `| **npm** | ${projectStack.npmVersion} |\n`; reportMarkdown += `| **Biome** | ${projectStack.biomeVersion} |\n\n`; }
 
 function printSummary(): void { addSectionToMarkdown(); console.log(""); log("═".repeat(60), "blue"); log(`\n${emoji.chart}  RÉSUMÉ`, "bright"); log(`\n  ${emoji.check} Réussis   : ${colors.green}${totalPass}${colors.reset}`, "reset"); log(`  ${emoji.cross} Échoués   : ${colors.red}${totalFail}${colors.reset}`, "reset"); log(`  ${emoji.warning} Ignorés   : ${colors.yellow}${totalIgnored}${colors.reset}`, "reset"); log(`  ⬡ Générés   : ${colors.blue}${totalGenerated}${colors.reset}`, "reset"); const total = totalPass + totalFail + totalIgnored; const percentage = total > 0 ? Math.round((totalPass / total) * 100) : 0; log(`  >>Taux      : ${percentage}%\n`, "reset"); if (totalFail === 0) { log("═".repeat(60), "green"); log(`\n${emoji.party}  MONOREPO ENTIÈREMENT FONCTIONNEL !`, "green");  } else { log("═".repeat(60), "red"); log(`\n${emoji.sad}  ERREURS DÉTECTÉES\n`, "red"); let lastSection = ""; for (const f of allFailedTests) { if (f.section !== lastSection) { log(`\n  ${f.section}`, "cyan"); lastSection = f.section; } log(`    ${emoji.cross} ${f.name}`, "red"); } console.log(""); } log("═".repeat(60), "blue"); console.log(""); }
 
@@ -1255,7 +1257,7 @@ main();
 ```
 <!-- ------------------------------------ -->
 ---
-### 23 - mobile > Créer la structure vide
+# 23 - mobile > Créer la structure vide
 Les dossiers mobile/ et son package.json ont déjà été créés à l'étape 06.
 
 ▷ Créer uniquement les sous-dossiers de l'application mobile.
@@ -1265,7 +1267,7 @@ mkdir -p mobile/src/components/Header mobile/src/components/Footer mobile/src/pa
 ```
 <!-- ------------------------------------ -->
 ---
-### 24 - web > Créer le frontend avec Vite
+# 24 - web > Créer le frontend avec Vite
 ▷ Initialiser le projet frontend React TypeScript avec Vite dans le dossier web/.
 
 🟡 Attention
@@ -1305,7 +1307,7 @@ Question 3 : Install with npm and start now?
 
 <!-- ------------------------------------ -->
 ---
-### 25 - web > Supprimer les dépendances ESLint
+# 25 - web > Supprimer les dépendances ESLint
 Le template Vite installe ESLint par défaut. Mais Biome est déjà configuré à la racine et couvre web/, avoir deux linters crée des conflits de règles et double la configuration à maintenir.
 
 ▷ Supprimer immédiatement les dépendances ESLint.
@@ -1322,7 +1324,7 @@ npm pkg delete scripts.lint
 ```
 <!-- ------------------------------------ -->
 ---
-### 26 - web > Supprimer le fichier de configuration ESLint
+# 26 - web > Supprimer le fichier de configuration ESLint
 
 ▷ Supprimer le fichier eslint.config.js généré par Vite.
 
@@ -1332,7 +1334,7 @@ rm -f eslint.config.js
 
 <!-- ------------------------------------ -->
 ---
-### 27 - web > Ajouter les dépendances applicatives
+# 27 - web > Ajouter les dépendances applicatives
 - react-router v7 : Gestion de la navigation et du routage.
 - react-toastify : Notifications et toasts dans l'interface.
 -  @emailjs/browser : Envoi d'emails directement depuis le navigateur.
@@ -1349,7 +1351,7 @@ npm pkg set devDependencies.@types/node="latest"
 ```
 <!-- ------------------------------------ -->
 ---
-### 28 - web > Créer les fichiers .env
+# 28 - web > Créer les fichiers .env
 
 ▷ Créer le fichier .env.sample et le .env du frontend avec les variables de configuration nécessaires.
 
@@ -1365,7 +1367,7 @@ Oublier de renseigner les vraies valeurs dans le fichier .env est problématique
 
 <!-- ------------------------------------ -->
 ---
-### 29 - server > Créer le dossier et initialiser npm
+# 29 - server > Créer le dossier et initialiser npm
 ▷ Créer le dossier server/ et initialiser npm dedans.
 
 ```bash
@@ -1377,7 +1379,7 @@ Vérifier que server/package.json a bien été créé avant de continuer.
 
 <!-- ------------------------------------ -->
 ---
-### 30 - server > Ajouter les dépendances du serveur
+# 30 - server > Ajouter les dépendances du serveur
 - Framework HTTP : express v5, typescript, tsx, et types TypeScript pour Node.js et Express.
 - Base de données PostgreSQL : pg et ses types TypeScript.
 - Auth, sécurité et utilitaires : dotenv, cors, bcrypt, cookie-parser, jsonwebtoken avec leurs types respectifs.
@@ -1420,7 +1422,7 @@ cloudinary SDK v2+ inclut ses types. Ne pas installer @types/cloudinary.
 
 <!-- ------------------------------------ -->
 ---
-### 31 - server > Créer tsconfig.json
+# 31 - server > Créer tsconfig.json
 ▷ Créer le tsconfig.json du serveur avec la configuration TypeScript.
 
 ```bash
@@ -1439,7 +1441,7 @@ node -e "require('fs').writeFileSync('tsconfig.json', JSON.stringify({
 
 <!-- ------------------------------------ -->
 ---
-### 32 - server > Créer les dossiers et fichiers vides
+# 32 - server > Créer les dossiers et fichiers vides
 ▷ Créer les dossiers src/ et database/script/ ainsi que les fichiers vides src/index.ts et database/script/schema.sql.
 
 ```bash
@@ -1449,7 +1451,7 @@ touch src/index.ts database/script/schema.sql
 ```
 <!-- ------------------------------------ -->
 ---
-### 33 - server > Créer les fichiers .env.sample et .env
+# 33 - server > Créer les fichiers .env.sample et .env
 ▷ Créer le fichier .env.sample et le .env du serveur avec les variables de configuration nécessaires.
 
 Le fichier server/.env.sample est un modèle sans secret réel ; compléter les valeurs locales dans server/.env, ignoré par Git. Contrairement aux variables VITE_ du frontend, les secrets du serveur (par exemple JWT_SECRET et les clés privées) restent côté serveur et ne doivent jamais être copiés dans web/.env.
@@ -1463,7 +1465,7 @@ Oublier de renseigner les vraies valeurs dans le fichier .env est problématique
 
 <!-- ------------------------------------ -->
 ---
-### 34 - racine > Lancer update-package-name.ts
+# 34 - racine > Lancer update-package-name.ts
 Ce script initialise les valeurs propres au projet dans les fichiers .env : le nom d'application dans server/.env, web/.env et mobile/.env, le nom du projet et de la base de données dans .env et server/.env, et un JWT_SECRET dans server/.env. Il ne modifie pas shared/src/constants.ts ; les paramètres sont lus par chaque application depuis son environnement.
 
 ▷ Revenir à la racine du monorepo et lancer ce script update-package-name.ts.
@@ -1505,7 +1507,7 @@ Si le terminal signale un fichier .env requis introuvable, vérifier que la comm
 
 <!-- ------------------------------------ -->
 ---
-### 35 - racine > Vérifier avec Biome
+# 35 - racine > Vérifier avec Biome
 Avant de lancer le serveur, s'assurer que le code est bien formaté selon Biome.
 
 ▷ Lancer ce script npm run format.
@@ -1524,7 +1526,7 @@ Formatted 28 files in 138ms. Fixed 15 files.
 
 <!-- ------------------------------------ -->
 ---
-### 36 - racine > Lancer npm install pour finaliser
+# 36 - racine > Lancer npm install pour finaliser
 Maintenant que tous les dossiers (web/, server/, mobile/ et shared/) ont leurs package.json respectifs, que les applications déclarent leur dépendance à @appstarter/shared et que les workspaces sont déclarés à la racine, npm peut installer et relier l'ensemble du monorepo.
 
 ▷ lancer npm install pour installer toutes les dépendances correctement.
