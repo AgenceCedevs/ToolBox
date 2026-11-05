@@ -42,7 +42,21 @@ npm init -y
 🔵 Sortie attendue
 
 ```text
-Wrote to ~/desktop/LOCAL/appStarter/package.json
+Wrote to C:\Users\Cédric\desktop\LOCAL\appStarter\package.json:
+
+{
+  "name": "appStarter",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
 ```
 
 <!-- ------------------------------------ -->
@@ -77,12 +91,18 @@ require('fs').writeFileSync('biome.json', JSON.stringify({
   vcs: { enabled: true, clientKind: 'git', useIgnoreFile: true },
   files: { ignoreUnknown: false, includes: ['**', '!**/node_modules'] },
   formatter: { enabled: true, indentStyle: 'tab', lineWidth: 320 },
-  linter: { enabled: true, rules: { recommended: true } },
+  linter: { enabled: true, rules: { preset: 'recommended' } },
+  overrides: [{
+    includes: ['web/src/vite-env.d.ts'],
+    linter: { rules: { correctness: { noUnusedVariables: 'off' } } }
+  }],
   javascript: { formatter: { quoteStyle: 'double' } },
   assist: { enabled: true, actions: { source: { organizeImports: 'on' } } }
 }, null, 2))
 "
 ```
+
+L'exception `overrides` garde `noUnusedVariables` actif dans tout le monorepo, mais le désactive dans `web/src/vite-env.d.ts`, où les interfaces globales ajoutées à Vite sont volontairement consommées par le système de types TypeScript.
 
 <!-- ------------------------------------ -->
 # 05 - racine > Créer tsconfig.json
@@ -1295,7 +1315,17 @@ function exportReport(): void { const fileName = `setup/verify_monorepo/verify-r
 .
 ${tree}\`\`\`
 
-`
+`;
+
+    writeFileSync(fileName, completeMarkdown, "utf-8");
+    writeFileSync(readmeFileName, completeMarkdown, "utf-8");
+    log(`${emoji.check} Rapport généré : ${fileName}`, "green");
+    log(`${emoji.check} README.md généré`, "green");
+  } catch (error) {
+    log(`${emoji.cross} Échec de génération du rapport : ${error instanceof Error ? error.message : error}`, "red");
+    throw error;
+  }
+}
 
 function generateCIWorkflow(): void {
   const workflowDir = ".github/workflows";
@@ -1363,39 +1393,31 @@ mkdir -p mobile/src/components/Header mobile/src/components/Footer mobile/src/pa
 ▷ Initialiser le projet frontend React TypeScript avec Vite dans le dossier web/.
 
 🟡 Attention
-Cette commande peut déclencher trois questions interactives dans le terminal. Lancez-la seule. Le terminal attendra vos réponses avant de poursuivre.
-
+Lancez la commande seule. Selon la version de create-vite, les questions peuvent être présentées dans un ordre légèrement différent.
 
 ```bash
-
 npm create vite@latest web -- --template react-ts
 ```
 
-Question 1 : Need to install the following packages: create-vite@9.0.3 Ok to proceed? (y)
+Répondre aux quatre questions ainsi :
 
-- Répondre par Y puis appuyer sur Entrée.
-
-Question 2 : Target directory "web" is not empty. Please choose how to proceed.
-
-- Utiliser la flèche bas pour naviguer jusqu'à Ignore files and continue.
-
-Question 3 : Install with npm and start now?
-
-- Sélectionner No avec la touche fléchée.
+1. `Ok to proceed? (y)` — répondre `y` puis appuyer sur Entrée pour lancer create-vite.
+2. `Target directory "web" is not empty. Please choose how to proceed:` — choisir `Ignore files and continue`, car `web/` contient déjà le `package.json` initialisé à l'étape 06. Ne pas choisir une option qui supprime les fichiers.
+3. `Which linter to use?` — choisir `ESLint`. L'étape 25 le supprimera ensuite, car Biome est le linter retenu pour le monorepo.
+4. `Install with npm and start now?` — choisir `No`. Les dépendances seront installées à la racine du monorepo à l'étape 36.
 
 🔴 Erreur fréquente
-À la question 3, ne pas sélectionner Yes. Vite installe les dépendances ET lance le serveur immédiatement, le terminal se bloque. Si cela arrive, appuyer sur Ctrl+C, puis exécuter rm -rf web et recommencer.
+Ne pas sélectionner `Yes` à la quatrième question : cela installe les dépendances dans `web/` et lance le serveur immédiatement, hors du déroulement prévu. Si cela arrive, arrêter le serveur avec Ctrl+C et ne pas supprimer `web/` ; vérifier l'état des fichiers avant de continuer.
 
 🔵 Sortie attendue
 ```text
 ◇  Scaffolding project in C:\Users\Cédric\desktop\LOCAL\appStarter\web...
 
-
 └  Done. Now run:
   cd web
   npm install
   npm run dev
-  ```
+```
 
 <!-- ------------------------------------ -->
 # 25 - web > Supprimer les dépendances ESLint
@@ -1556,6 +1578,9 @@ Ce script initialise les valeurs propres au projet dans les fichiers .env : le n
 cd ..
 npx tsx setup/update-package-name.ts
 ```
+
+Comme les dépendances du projet ne seront installées qu'à l'étape 36, `npx` peut afficher une invite telle que `Need to install the following packages: tsx@... Ok to proceed? (y)`. Répondre `y` puis appuyer sur Entrée. Cela permet à `npx` de récupérer `tsx` pour exécuter ce script ; continuer ensuite la notice jusqu'à l'installation complète.
+
 🔵 Sortie attendue
 ```text
 =========================
@@ -1591,12 +1616,43 @@ Si le terminal signale un fichier .env requis introuvable, vérifier que la comm
 # 35 - racine > Vérifier avec Biome
 Avant de lancer le serveur, s'assurer que le code est bien formaté selon Biome.
 
-▷ Lancer ce script npm run format.
+▷ Depuis la racine du monorepo, vérifier que le fichier `.gitignore` de l'étape 11 existe, puis lancer `npm run format`.
 
 ```bash
-
+ls -la .gitignore
 npm run format
 ```
+
+🔴 Erreur fréquente
+Si Biome affiche `couldn't find an ignore file` et que `.gitignore` manque, le recréer seul depuis la racine avec la commande ci-dessous, puis relancer `npm run format`. Ne pas relancer toutes les commandes de l'étape 11 pour cette réparation : elles recréent aussi les fichiers `.env`.
+
+```bash
+node -e 'require("fs").writeFileSync(".gitignore", "node_modules/\n.env\n.env.*\n!.env.sample\ndist/\ndist-ssr/\nlogs/\n*.log\nnpm-debug.log*\n*.local\n.DS_Store\n*.tsbuildinfo\n.vscode/\n")'
+```
+
+🟡 Attention
+Pour un projet déjà créé avec une ancienne configuration, lancer `npx biome migrate`, puis vérifier que le `biome.json` racine contient l'exception `overrides` montrée à l'étape 04.
+
+```json
+"overrides": [
+	{
+		"includes": ["web/src/vite-env.d.ts"],
+		"linter": {
+			"rules": {
+				"correctness": {
+					"noUnusedVariables": "off"
+				}
+			}
+		}
+	}
+],
+```
+
+Dans `web/src/vite-env.d.ts`, garder `/// <reference types="vite/client" />` et l'interface `ImportMetaEnv`; ne pas redéclarer `ImportMeta`.
+
+🔴 Erreurs fréquentes après `npm run fix`
+Corriger les erreurs de lint avant de continuer ; le formatage automatique ne répare pas toutes les erreurs de code. Les ajustements propres aux styles frontend, aux titres JSX et aux déclarations Vite sont directement intégrés aux extraits du module 02. Utiliser ces extraits corrigés plutôt que des remplacements Ctrl+H globaux, qui peuvent modifier d'autres balises ou blocs sans rapport.
+
 🔵 Sortie attendue
 ```text
 > appStarter@1.0.0 format
@@ -1618,6 +1674,7 @@ npm run build:shared
 npm ls @appstarter/shared --workspaces
 ```
 La compilation génère les versions ESM et CommonJS dans shared/dist/. La commande de vérification doit afficher @appstarter/shared dans les workspaces web, server et mobile. Le dossier shared/node_modules n'est pas nécessaire : npm relie le package dans le node_modules racine.
+
 🔵 Sortie attendue
 ```text
 added 201 packages, and audited 205 packages in 25s

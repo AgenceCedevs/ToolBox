@@ -49,32 +49,58 @@ touch server/src/routes/health.router.ts
 ```
 <!-- ------------------------------------ -->
 # 03 - server > Mettre à jour package.json
-Le package.json du serveur doit passer en modules ES, disposer des scripts nécessaires et supprimer les champs inutiles.
+Le package.json du serveur déclare le format CommonJS utilisé par la compilation, les dépendances et les scripts de développement, de build et de démarrage.
 
-▷ Exécuter ces commandes pour mettre à jour le package.json.
+▷ Ouvrir server/package.json et remplacer son contenu par le manifeste suivant. Les dépendances doivent également être installées à la racine du monorepo.
 
-```bash
-cd server
-npm pkg set type="module"
-npm pkg set private=true
-npm pkg set scripts.dev="tsx watch src/index.ts"
-npm pkg set scripts.start="node dist/index.js"
-npm pkg set scripts.build="tsc"
-npm pkg delete scripts.test
-npm pkg delete description
-npm pkg delete main
-npm pkg delete keywords
-npm pkg delete author
-npm pkg delete license
-cd ..
+```json
+{
+	"name": "server",
+	"version": "1.0.0",
+	"description": "",
+	"main": "dist/index.js",
+	"scripts": {
+		"dev": "tsx watch src/index.ts",
+		"build": "tsc -p tsconfig.json",
+		"start": "node dist/index.js"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"type": "commonjs",
+	"dependencies": {
+		"@appstarter/shared": "*",
+		"bcrypt": "latest",
+		"cloudinary": "latest",
+		"cookie-parser": "latest",
+		"cors": "latest",
+		"dotenv": "latest",
+		"express": "^5",
+		"jsonwebtoken": "latest",
+		"multer": "latest",
+		"pg": "latest"
+	},
+	"devDependencies": {
+		"@types/bcrypt": "latest",
+		"@types/cookie-parser": "latest",
+		"@types/cors": "latest",
+		"@types/express": "latest",
+		"@types/jsonwebtoken": "latest",
+		"@types/multer": "latest",
+		"@types/node": "latest",
+		"@types/pg": "latest",
+		"tsx": "latest",
+		"typescript": "latest"
+	}
+}
 ```
 
 🔵 Info
-Ces commandes passent le serveur en ES modules ("type": "module"), ajoutent les scripts dev, start et build, et nettoient les champs inutiles du package.json.
+Le script `dev` lance le serveur avec rechargement automatique. Le script `build` compile `server/src/` vers `server/dist/`, et `start` exécute ensuite ce build. Le type `commonjs` doit rester cohérent avec le `tsconfig.json` du serveur.
 
 <!-- ------------------------------------ -->
 # 04 - server > Mettre à jour tsconfig.json
-Le serveur nécessite sa propre configuration TypeScript, optimisée pour Node.js avec support des ES modules.
+Le serveur nécessite sa propre configuration TypeScript, optimisée pour Node.js avec le mode `NodeNext`.
 
 ▷ Ouvrir le fichier server/tsconfig.json et remplacer le contenu existant par le contenu suivant.
 
@@ -137,8 +163,8 @@ import "dotenv/config";
 import express from "express";
 import healthRouter from "./routes/health.router.js";
 
-const BLUE = "[34m";
-const RESET = "[0m";
+const BLUE = "\x1b[34m";
+const RESET = "\x1b[0m";
 
 const app = express();
 const PORT = process.env.PORT || 3310;
@@ -239,7 +265,13 @@ npm run dev:server
 
 ```text
 > appstarter2@1.0.0 dev:server
-> npm run dev -w server
+> npm run build:shared && npm run dev -w server
+
+> appstarter2@1.0.0 build:shared
+> npm run build -w shared
+
+> @appstarter/shared@1.0.0 build
+> tsc -p tsconfig.esm.json && tsc -p tsconfig.cjs.json && node write-build-metadata.cjs
 
 > server@1.0.0 dev
 > tsx watch src/index.ts
