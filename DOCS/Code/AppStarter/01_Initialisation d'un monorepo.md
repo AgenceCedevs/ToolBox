@@ -91,7 +91,7 @@ require('fs').writeFileSync('biome.json', JSON.stringify({
   vcs: { enabled: true, clientKind: 'git', useIgnoreFile: true },
   files: { ignoreUnknown: false, includes: ['**', '!**/node_modules'] },
   formatter: { enabled: true, indentStyle: 'tab', lineWidth: 320 },
-  linter: { enabled: true, rules: { preset: 'recommended' } },
+  linter: { enabled: true, rules: { recommended: true } },
   overrides: [{
     includes: ['web/src/vite-env.d.ts'],
     linter: { rules: { correctness: { noUnusedVariables: 'off' } } }
@@ -102,7 +102,7 @@ require('fs').writeFileSync('biome.json', JSON.stringify({
 "
 ```
 
-L'exception `overrides` garde `noUnusedVariables` actif dans tout le monorepo, mais le désactive dans `web/src/vite-env.d.ts`, où les interfaces globales ajoutées à Vite sont volontairement consommées par le système de types TypeScript.
+L’`overrides`désactive la règle `noUnusedVariables` uniquement pour le fichier w`web/src/vite-env.d.ts`. Dans ce fichier, on déclare des interfaces globales (par exemple ImportMetaEnv) qui ne sont jamais importées ni appelées dans ton code : c’est TypeScript lui-même qui les utilise pour typer import.meta.env. Biome les croirait donc inutilisées à tort. Partout ailleurs dans le monorepo, la règle reste active.
 
 <!-- ------------------------------------ -->
 # 05 - racine > Créer tsconfig.json
@@ -229,6 +229,8 @@ const map = {
 const bin = './node_modules/@biomejs/' + (map[os.platform() + '-' + os.arch()] || 'biome/bin/biome');
 fs.writeFileSync('.vscode/settings.json', JSON.stringify({
   'editor.formatOnSave': true,
+  'editor.formatOnPaste': false,
+  'editor.formatOnSaveMode': 'file',
   'editor.defaultFormatter': 'biomejs.biome',
   'editor.codeActionsOnSave': {
     'source.organizeImports.biome': 'explicit',
@@ -242,9 +244,6 @@ fs.writeFileSync('.vscode/settings.json', JSON.stringify({
 ```
 
 `css.validate` active la validation CSS intégrée à VS Code. `css.lint.vendorPrefix: ignore` masque les avertissements concernant les préfixes propriétaires (`-webkit-`, `-moz-`, etc.). Le chemin de l'exécutable Biome est choisi automatiquement selon le système d'exploitation et l'architecture ; ne pas le remplacer par un chemin Windows fixe.
-
-<!-- ------------------------------------ -->
----
 
 <!-- ------------------------------------ -->
 # 10 - racine > Configurer package.json en ES modules
@@ -275,15 +274,18 @@ npm pkg delete scripts.test
 ▷ Créer les fichiers .gitignore, .env.sample et .env avec leurs variables d'environnement et règles d'exclusion.
 
 ```bash
-node -e "require('fs').writeFileSync('.gitignore', 'node_modules/\n.env\n.env.*\n!.env.sample\ndist/\ndist-ssr/\nlogs/\n*.log\nnpm-debug.log*\n*.local\n.DS_Store\n*.tsbuildinfo\n.vscode/\n')"
-node -e "require('fs').writeFileSync('.env.sample', '# App\nNODE_ENV=development\nPROJECT_NAME=PENDING_FOLDER_NAME\nWEB_PORT=5173\n\n# PostgreSQL\nPOSTGRES_USER=postgres_user\nPOSTGRES_PASSWORD=postgres_password\nPOSTGRES_DB=PENDING_FOLDER_NAME\nPGDATABASE=PENDING_FOLDER_NAME\nPGHOST=localhost\nPGPORT=5432\n\n# pgAdmin\nPGADMIN_EMAIL=admin_user\nPGADMIN_PASSWORD=admin_password\nPGADMIN_PORT=5050\n')"
-node -e "require('fs').copyFileSync('.env.sample', '.env')"
+node --input-type=module -e 'import { writeFileSync } from "node:fs"; writeFileSync(".gitignore", "# Dependances\nnode_modules/\n\n# Environnement (les modeles restent versionnes)\n.env\n.env.*\n!.env.sample\n\n# Builds\ndist/\ndist-ssr/\ncoverage/\n*.tsbuildinfo\n\n# Logs\nlogs/\n*.log\nnpm-debug.log*\nyarn-debug.log*\nyarn-error.log*\npnpm-debug.log*\nlerna-debug.log*\n\n# Editeurs et systeme\n.vscode/*\n!.vscode/extensions.json\n.idea/\n.DS_Store\n*.suo\n*.ntvs*\n*.njsproj\n*.sln\n*.sw?\n*.local\n")'
+node --input-type=module -e "import { writeFileSync } from 'node:fs'; writeFileSync('.env.sample', '# App\nNODE_ENV=development\nPROJECT_NAME=PENDING_FOLDER_NAME\nWEB_PORT=5173\n\n# PostgreSQL\nPOSTGRES_USER=postgres_user\nPOSTGRES_PASSWORD=postgres_password\nPOSTGRES_DB=PENDING_FOLDER_NAME\nPGDATABASE=PENDING_FOLDER_NAME\nPGHOST=localhost\nPGPORT=5432\n\n# pgAdmin\nPGADMIN_EMAIL=admin_user\nPGADMIN_PASSWORD=admin_password\nPGADMIN_PORT=5050\n')"
+node --input-type=module -e "import { copyFileSync, constants } from 'node:fs'; copyFileSync('.env.sample', '.env', constants.COPYFILE_EXCL)"
 ```
 
 Les règles `.env` et `.env.*` ignorent les fichiers d'environnement locaux à la racine et dans les workspaces. `!.env.sample` permet de versionner les modèles, notamment web/.env.sample, server/.env.sample et mobile/.env.sample.
 
 🔴 Erreur fréquente
 Oublier de renseigner les vraies valeurs dans les fichiers .env locaux est problématique : l'application ne pourra pas se connecter correctement aux services. Ne remplacez les valeurs fictives que dans les .env ignorés par Git, jamais dans les .env.sample.
+
+🟡 Attention
+Si `.env` existe déjà, la dernière commande s'arrête avec l'erreur `EEXIST`. C'est voulu : elle protège vos vraies valeurs au lieu de les écraser.
 
 <!-- ------------------------------------ -->
 # 12 - racine > Créer le fichier docker-compose.yml
@@ -298,7 +300,6 @@ touch docker-compose.yml
 <!-- ------------------------------------ -->
 # 13 - racine > Ajouter le contenu à docker-compose.yml
 ▷ Ouvrir le fichier docker-compose.yml et coller le contenu suivant.
-
 
 ```yaml
 services:
@@ -376,7 +377,6 @@ Ce fichier centralise uniquement les valeurs stables de l'application utilisées
 
 ▷ Ouvrir le fichier shared/src/constants.ts et coller le contenu suivant.
 
-
 ```typescript
 export const constants = {
 	DEFAULT_USER_NAME: "utilisateur",
@@ -409,7 +409,6 @@ Ce script automatise le démarrage de l'environnement local : il vérifie Docker
 La création de ce fichier ne le lance pas. Exécuter `npx tsx setup/liveApp.ts` depuis la racine une fois le projet terminé, Docker Desktop démarré, les packages installés et les fichiers `.env` renseignés. Le launcher démarre les conteneurs du projet et initialise le schéma, sans arrêter d'autres services, supprimer de conteneurs ou supprimer de volumes. Pour un démarrage simple sans gérer Docker, utiliser `npm run dev` depuis la racine.
 
 ▷ Ouvrir le fichier setup/liveApp.ts et coller le contenu suivant.
-
 
 ```typescript
 // npx tsx setup/liveApp.ts
@@ -674,6 +673,29 @@ const appName = rootFolderName
 	.replace(/\s+/g, " ");
 const folderName = rootFolderName.toLowerCase().replace(/[^\w]/g, "_").replace(/_+/g, "_");
 
+const TEMPLATE_SCOPE = "@appstarter/";
+const sharedScope = `@${folderName}/`;
+const scopeExtensions = [".json", ".ts", ".tsx", ".js", ".cjs", ".mjs"];
+const scopeIgnoredFolders = ["node_modules", "dist", ".git"];
+
+function renameSharedScope(dir: string): number {
+	let count = 0;
+	for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+		const fullPath = path.join(dir, entry.name);
+		if (entry.isDirectory()) {
+			if (!scopeIgnoredFolders.includes(entry.name)) count += renameSharedScope(fullPath);
+			continue;
+		}
+		if (entry.name === "package-lock.json" || !scopeExtensions.includes(path.extname(entry.name))) continue;
+		const content = fs.readFileSync(fullPath, "utf8");
+		if (!content.includes(TEMPLATE_SCOPE)) continue;
+		fs.writeFileSync(fullPath, content.split(TEMPLATE_SCOPE).join(sharedScope));
+		console.log(`   ${path.relative(process.cwd(), fullPath).replace(/\\/g, "/")} : ${TEMPLATE_SCOPE} → ${sharedScope}`);
+		count++;
+	}
+	return count;
+}
+
 function generateJWTSecret(): string {
 	return crypto.randomBytes(32).toString("hex");
 }
@@ -728,11 +750,19 @@ updateEnv(path.resolve("server/.env"));
 updateEnv(path.resolve("web/.env"));
 updateEnv(path.resolve("mobile/.env"));
 updateEnv(path.resolve(".env"));
+
+if (sharedScope === TEMPLATE_SCOPE) {
+	console.log(`🔵 Scope npm ${sharedScope} - aucun renommage nécessaire`);
+} else {
+	const renamed = ["shared", "web", "server", "mobile"].reduce((total, workspace) => total + renameSharedScope(path.resolve(workspace)), 0);
+	console.log(`🟢 Scope npm : ${TEMPLATE_SCOPE}shared → ${sharedScope}shared (${renamed} fichier(s))`);
+}
 console.log(`
 =========================
 🟢 CONFIGURATION TERMINÉE
 =========================
 `);
+
 ```
 
 <!-- ------------------------------------ -->
@@ -959,7 +989,7 @@ Ce dossier contient les fichiers annexes au monorepo qui ne font pas directement
 
 ▷ Ouvrir le fichier setup/resources/resources.md et coller le contenu suivant.
 
-```markdown
+```text
 Ce dossier contient les fichiers annexes au monorepo qui ne font pas directement partie du code source.
 
 - Documents PDF / Word - Textes à intégrer dans le site, conditions générales, contrats, guides, notices
@@ -993,18 +1023,9 @@ Ce script de vérification teste l'intégrité du monorepo. Il contrôle la stru
 🟡 Attention
 Ne pas lancer ce script pendant le module 01 juste après `npm install`. Il échouera tant que l'API `/api/health` ne répond pas, que la table PostgreSQL `users` n'existe pas, que le build `web/dist/` n'a pas été créé ou que Git n'a pas été initialisé. Une fois l'application et la base prêtes, démarrer Docker et l'API, créer le build web, puis lancer la vérification depuis la racine :
 
-```bash
-npm run build:shared
-npm run build -w web
-npx tsx setup/verify_monorepo/verify_monorepo.ts
-```
-
-Le rapport est généré dans `setup/verify_monorepo/verify-report-AAAA-MM-JJ.md`. Une vérification avant cette étape est normale si elle signale des échecs liés aux services ou fonctionnalités pas encore créés.
-
 ▷ Ouvrir le fichier setup/verify_monorepo/verify_monorepo.ts et coller le contenu suivant.
 
 ```typescript
-
 // Lancement depuis la racine, lorsque l'application est prête :
 // npx tsx setup/verify_monorepo/verify_monorepo.ts
 import { execSync } from "node:child_process";
@@ -1401,10 +1422,16 @@ npm create vite@latest web -- --template react-ts
 
 Répondre aux quatre questions ainsi :
 
-1. `Ok to proceed? (y)` — répondre `y` puis appuyer sur Entrée pour lancer create-vite.
-2. `Target directory "web" is not empty. Please choose how to proceed:` — choisir `Ignore files and continue`, car `web/` contient déjà le `package.json` initialisé à l'étape 06. Ne pas choisir une option qui supprime les fichiers.
-3. `Which linter to use?` — choisir `ESLint`. L'étape 25 le supprimera ensuite, car Biome est le linter retenu pour le monorepo.
-4. `Install with npm and start now?` — choisir `No`. Les dépendances seront installées à la racine du monorepo à l'étape 36.
+1. `Target directory "web" is not empty. Please choose how to proceed:` — choisir `Ignore files and continue`.
+- `web/` contient déjà le `package.json` initialisé à l'étape 06. Ne pas choisir une option qui supprime les fichiers.
+
+2. `Which linter to use?` — choisir `ESLint`.
+- L'étape 25 le supprimera ensuite, car Biome est le linter retenu pour le monorepo.
+
+3. `Install with npm and start now?` — choisir `No`.
+- Les dépendances seront installées à la racine du monorepo à l'étape 36.
+
+4. `Ok to proceed? (y)` — répondre `y` puis appuyer sur Entrée pour lancer create-vite.
 
 🔴 Erreur fréquente
 Ne pas sélectionner `Yes` à la quatrième question : cela installe les dépendances dans `web/` et lance le serveur immédiatement, hors du déroulement prévu. Si cela arrive, arrêter le serveur avec Ctrl+C et ne pas supprimer `web/` ; vérifier l'état des fichiers avant de continuer.
@@ -1469,7 +1496,7 @@ Le fichier web/.env.sample contient uniquement des valeurs fictives et peut êtr
 
 ```bash
 node -e "require('fs').writeFileSync('.env.sample', '# App\nVITE_APP_NAME=PENDING_APP_NAME\nVITE_APP_URL=http://localhost:5173\n\n# API\nVITE_API_URL=http://localhost:3310/api\n\n# EmailJS (optionnel)\nVITE_EMAILJS_SERVICE_ID=PENDING_EMAILJS\nVITE_EMAILJS_TEMPLATE_ID=PENDING_EMAILJS\nVITE_EMAILJS_PUBLIC_KEY=PENDING_EMAILJS\n')"
-node -e "require('fs').copyFileSync('.env.sample', '.env')"
+node --input-type=module -e "import { copyFileSync, constants } from 'node:fs'; copyFileSync('.env.sample', '.env', constants.COPYFILE_EXCL)"
 cd ..
 ```
 🔴 Erreur fréquente
@@ -1494,7 +1521,6 @@ Vérifier que server/package.json a bien été créé avant de continuer.
 - Upload fichiers et stockage cloud : multer pour la gestion des fichiers et cloudinary pour le stockage cloud.
 
 ▷ Ajouter les dépendances du serveur au package.json sans les installer maintenant.
-
 
 ```bash
 # Framework HTTP
@@ -1533,7 +1559,6 @@ cloudinary SDK v2+ inclut ses types. Ne pas installer @types/cloudinary.
 ▷ Créer le tsconfig.json du serveur avec la configuration TypeScript.
 
 ```bash
-
 node -e "require('fs').writeFileSync('tsconfig.json', JSON.stringify({
   compilerOptions: {
     target: 'ES2020',
@@ -1551,7 +1576,6 @@ node -e "require('fs').writeFileSync('tsconfig.json', JSON.stringify({
 ▷ Créer les dossiers src/ et database/script/ ainsi que les fichiers vides src/index.ts et database/script/schema.sql.
 
 ```bash
-
 mkdir -p src database/script
 touch src/index.ts database/script/schema.sql
 ```
@@ -1563,7 +1587,7 @@ Le fichier server/.env.sample est un modèle sans secret réel ; compléter les 
 
 ```bash
 node -e "require('fs').writeFileSync('.env.sample', '# App\nAPP_NAME=PENDING_APP_NAME\nPORT=3310\nNODE_ENV=development\nCLIENT_URL=http://localhost:5173\n\n# Auth\nJWT_SECRET=PENDING_JWT_SECRET\n\n# PostgreSQL\nPGHOST=localhost\nPGPORT=5432\nPOSTGRES_USER=postgres_user\nPOSTGRES_PASSWORD=postgres_password\nPOSTGRES_DB=PENDING_FOLDER_NAME\nPGDATABASE=PENDING_FOLDER_NAME\n\n# EmailJS\nEMAILJS_SERVICE_ID=PENDING_EMAILJS\nEMAILJS_TEMPLATE_ID_REGISTER=PENDING_EMAILJS\nEMAILJS_PRIVATE_KEY=PENDING_EMAILJS\nEMAILJS_PUBLIC_KEY=PENDING_EMAILJS\n\n# Cloudinary\nCLOUDINARY_CLOUD_NAME=PENDING_CLOUDINARY\nCLOUDINARY_API_KEY=PENDING_CLOUDINARY\nCLOUDINARY_API_SECRET=PENDING_CLOUDINARY\n')"
-node -e "require('fs').copyFileSync('.env.sample', '.env')"
+node --input-type=module -e "import { copyFileSync, constants } from 'node:fs'; copyFileSync('.env.sample', '.env', constants.COPYFILE_EXCL)"
 ```
 🔴 Erreur fréquente
 Oublier de renseigner les vraies valeurs dans le fichier .env est problématique. L'application ne pourra pas se connecter correctement aux services comme la base de données et risque de ne pas fonctionner.
@@ -1613,22 +1637,21 @@ Si le script est relancé après un premier passage, il affiche qu'aucun remplac
 Si le terminal signale un fichier .env requis introuvable, vérifier que la commande est lancée depuis la racine du monorepo et que les étapes 06, 11, 28 et 33 ont été effectuées. Taper pwd pour vérifier le dossier courant.
 
 <!-- ------------------------------------ -->
-# 35 - racine > Vérifier avec Biome
-Avant de lancer le serveur, s'assurer que le code est bien formaté selon Biome.
+# 35 - racine > Créer le .gitignore et formater avec Biome
+Avant de lancer le serveur, créer le `.gitignore` à la racine du monorepo, puis s'assurer que le code est bien formaté selon Biome. Biome lit ce fichier (`useIgnoreFile: true` dans `biome.json`) pour savoir quels fichiers ignorer.
 
-▷ Depuis la racine du monorepo, vérifier que le fichier `.gitignore` de l'étape 11 existe, puis lancer `npm run format`.
+▷ Depuis la racine du monorepo, créer le fichier `.gitignore`, puis lancer `npm run format`.
 
 ```bash
-ls -la .gitignore
+node --input-type=module -e 'import { writeFileSync } from "node:fs"; writeFileSync(".gitignore", "# Dependances\nnode_modules/\n\n# Environnement (les modeles restent versionnes)\n.env\n.env.*\n!.env.sample\n\n# Builds\ndist/\ndist-ssr/\ncoverage/\n*.tsbuildinfo\n\n# Logs\nlogs/\n*.log\nnpm-debug.log*\nyarn-debug.log*\nyarn-error.log*\npnpm-debug.log*\nlerna-debug.log*\n\n# Editeurs et systeme\n.vscode/*\n!.vscode/extensions.json\n.idea/\n.DS_Store\n*.suo\n*.ntvs*\n*.njsproj\n*.sln\n*.sw?\n*.local\n")'
 npm run format
 ```
 
-🔴 Erreur fréquente
-Si Biome affiche `couldn't find an ignore file` et que `.gitignore` manque, le recréer seul depuis la racine avec la commande ci-dessous, puis relancer `npm run format`. Ne pas relancer toutes les commandes de l'étape 11 pour cette réparation : elles recréent aussi les fichiers `.env`.
+🟡 Attention
+Cette commande crée le `.gitignore` racine, ou l'écrase s'il existe déjà. Elle ne touche à aucun fichier `.env` ni `.env.sample`.
 
-```bash
-node -e 'require("fs").writeFileSync(".gitignore", "node_modules/\n.env\n.env.*\n!.env.sample\ndist/\ndist-ssr/\nlogs/\n*.log\nnpm-debug.log*\n*.local\n.DS_Store\n*.tsbuildinfo\n.vscode/\n")'
-```
+🔴 Erreur fréquente
+Si Biome affiche `couldn't find an ignore file`, le `.gitignore` n'a pas été créé à la racine : vérifier le dossier courant avec `pwd`, relancer la commande de création depuis la racine du monorepo, puis relancer `npm run format`.
 
 🟡 Attention
 Pour un projet déjà créé avec une ancienne configuration, lancer `npx biome migrate`, puis vérifier que le `biome.json` racine contient l'exception `overrides` montrée à l'étape 04.
@@ -1668,7 +1691,6 @@ Maintenant que tous les dossiers (web/, server/, mobile/ et shared/) ont leurs p
 ▷ lancer npm install pour installer toutes les dépendances correctement.
 
 ```bash
-
 npm install
 npm run build:shared
 npm ls @appstarter/shared --workspaces
