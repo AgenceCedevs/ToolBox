@@ -91,7 +91,7 @@ require('fs').writeFileSync('biome.json', JSON.stringify({
   vcs: { enabled: true, clientKind: 'git', useIgnoreFile: true },
   files: { ignoreUnknown: false, includes: ['**', '!**/node_modules'] },
   formatter: { enabled: true, indentStyle: 'tab', lineWidth: 320 },
-  linter: { enabled: true, rules: { recommended: true } },
+  linter: { enabled: true, rules: { preset: 'recommended' } },
   overrides: [{
     includes: ['web/src/vite-env.d.ts'],
     linter: { rules: { correctness: { noUnusedVariables: 'off' } } }
@@ -762,7 +762,6 @@ console.log(`
 🟢 CONFIGURATION TERMINÉE
 =========================
 `);
-
 ```
 
 <!-- ------------------------------------ -->
@@ -1507,7 +1506,6 @@ Oublier de renseigner les vraies valeurs dans le fichier .env est problématique
 ▷ Créer le dossier server/ et initialiser npm dedans.
 
 ```bash
-
 mkdir server && cd server && npm init -y
 ```
 🔵 Info
@@ -1656,36 +1654,42 @@ Si Biome affiche `couldn't find an ignore file`, le `.gitignore` n'a pas été c
 🟡 Attention
 Pour un projet déjà créé avec une ancienne configuration, lancer `npx biome migrate`, puis vérifier que le `biome.json` racine contient l'exception `overrides` montrée à l'étape 04.
 
-```json
-"overrides": [
-	{
-		"includes": ["web/src/vite-env.d.ts"],
-		"linter": {
-			"rules": {
-				"correctness": {
-					"noUnusedVariables": "off"
-				}
-			}
-		}
-	}
-],
-```
-
-Dans `web/src/vite-env.d.ts`, garder `/// <reference types="vite/client" />` et l'interface `ImportMetaEnv`; ne pas redéclarer `ImportMeta`.
-
-🔴 Erreurs fréquentes après `npm run fix`
-Corriger les erreurs de lint avant de continuer ; le formatage automatique ne répare pas toutes les erreurs de code. Les ajustements propres aux styles frontend, aux titres JSX et aux déclarations Vite sont directement intégrés aux extraits du module 02. Utiliser ces extraits corrigés plutôt que des remplacements Ctrl+H globaux, qui peuvent modifier d'autres balises ou blocs sans rapport.
-
 🔵 Sortie attendue
 ```text
 > appStarter@1.0.0 format
 > biome format --write .
 
-Formatted 28 files in 138ms. Fixed 15 files.
+Formatted 33 files in 138ms. Fixed 18 files.
 ```
 
 <!-- ------------------------------------ -->
-# 36 - racine > Lancer npm install pour finaliser
+# 36 - racine > Corriger les fichiers du template Vite et lancer le lint
+Le template Vite génère quatre éléments que Biome refuse : une assertion non nulle dans `main.tsx`, deux SVG sans titre dans `web/public/` et un lien au texte ambigu dans `App.tsx`. Les corriger avant de lancer `npm run fix`.
+
+▷ Depuis la racine du monorepo, appliquer les corrections puis lancer `npm run fix`.
+
+```bash
+sed -i 's/document.getElementById("root")!/document.getElementById("root") as HTMLElement/' web/src/main.tsx
+sed -i 's|<svg xmlns="http://www.w3.org/2000/svg"|<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Logo"|' web/public/favicon.svg
+sed -i 's|<svg xmlns="http://www.w3.org/2000/svg">|<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Icônes">|' web/public/icons.svg
+sed -i 's/Learn more/Documentation React/g' web/src/App.tsx
+npm run fix
+```
+
+🟡 Attention
+À lancer une seule fois : relancer les commandes sur `favicon.svg` ajouterait les attributs en double.
+
+🔵 Info
+Dans `web/src/vite-env.d.ts`, garder `/// <reference types="vite/client" />` et l'interface `ImportMetaEnv` ; ne pas redéclarer `ImportMeta`.
+
+🔴 Erreurs fréquentes après `npm run fix`
+Corriger les erreurs de lint avant de continuer ; le formatage automatique ne répare pas toutes les erreurs de code. Les ajustements propres aux styles frontend, aux titres JSX et aux déclarations Vite sont directement intégrés aux extraits du module 02. Utiliser ces extraits corrigés plutôt que des remplacements Ctrl+H globaux, qui peuvent modifier d'autres balises ou blocs sans rapport.
+
+🔵 Sortie attendue
+Biome ne signale plus aucune erreur à la fin de `npm run fix`.
+
+<!-- ------------------------------------ -->
+# 37 - racine > Lancer npm install pour finaliser
 Maintenant que tous les dossiers (web/, server/, mobile/ et shared/) ont leurs package.json respectifs, que les applications déclarent leur dépendance à @appstarter/shared et que les workspaces sont déclarés à la racine, npm peut installer et relier l'ensemble du monorepo.
 
 ▷ lancer npm install pour installer toutes les dépendances correctement.
@@ -1693,21 +1697,12 @@ Maintenant que tous les dossiers (web/, server/, mobile/ et shared/) ont leurs p
 ```bash
 npm install
 npm run build:shared
-npm ls @appstarter/shared --workspaces
+npm ls "@$(basename "$PWD" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_]/_/g')/shared" --workspaces
 ```
 La compilation génère les versions ESM et CommonJS dans shared/dist/. La commande de vérification doit afficher @appstarter/shared dans les workspaces web, server et mobile. Le dossier shared/node_modules n'est pas nécessaire : npm relie le package dans le node_modules racine.
 
-🔵 Sortie attendue
-```text
-added 201 packages, and audited 205 packages in 25s
-
-44 packages are looking for funding
-run `npm fund` for details
-
-found 0 vulnerabilities
-```
 <!-- ------------------------------------ -->
-# 37 - racine > Initialiser Git et commiter la structure
+# 38 - racine > Initialiser Git et commiter la structure
 Git permet de versionner le code et de revenir à un état antérieur en cas d'erreur. Initialiser ici, après la structure de base, crée un point de départ propre. Le monorepo est structuré et toutes les dépendances sont installées.
 
 ▷ Initialiser Git et sauvegarder cet état initial.
@@ -1718,7 +1713,7 @@ git branch -M main
 git add .
 ```
 <!-- ------------------------------------ -->
-# 38 - racine > Commiter la structure initiale
+# 39 - racine > Commiter la structure initiale
 🟡 Attention
 Personnaliser le message de commit ci-dessous avant de lancer la commande.
 
