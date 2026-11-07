@@ -91,7 +91,7 @@ require('fs').writeFileSync('biome.json', JSON.stringify({
   vcs: { enabled: true, clientKind: 'git', useIgnoreFile: true },
   files: { ignoreUnknown: false, includes: ['**', '!**/node_modules'] },
   formatter: { enabled: true, indentStyle: 'tab', lineWidth: 320 },
-  linter: { enabled: true, rules: { preset: 'recommended' } },
+  linter: { enabled: true, rules: { recommended: true } },
   overrides: [{
     includes: ['web/src/vite-env.d.ts'],
     linter: { rules: { correctness: { noUnusedVariables: 'off' } } }
@@ -1638,12 +1638,15 @@ Si le terminal signale un fichier .env requis introuvable, vérifier que la comm
 # 35 - racine > Créer le .gitignore et formater avec Biome
 Avant de lancer le serveur, créer le `.gitignore` à la racine du monorepo, puis s'assurer que le code est bien formaté selon Biome. Biome lit ce fichier (`useIgnoreFile: true` dans `biome.json`) pour savoir quels fichiers ignorer.
 
-▷ Depuis la racine du monorepo, créer le fichier `.gitignore`, puis lancer `npm run format`.
+▷ Depuis la racine du monorepo, créer le fichier `.gitignore`, vérifier la configuration Biome, puis lancer `npm run format`.
 
 ```bash
 node --input-type=module -e 'import { writeFileSync } from "node:fs"; writeFileSync(".gitignore", "# Dependances\nnode_modules/\n\n# Environnement (les modeles restent versionnes)\n.env\n.env.*\n!.env.sample\n\n# Builds\ndist/\ndist-ssr/\ncoverage/\n*.tsbuildinfo\n\n# Logs\nlogs/\n*.log\nnpm-debug.log*\nyarn-debug.log*\nyarn-error.log*\npnpm-debug.log*\nlerna-debug.log*\n\n# Editeurs et systeme\n.vscode/*\n!.vscode/extensions.json\n.idea/\n.DS_Store\n*.suo\n*.ntvs*\n*.njsproj\n*.sln\n*.sw?\n*.local\n")'
+npx biome check --linter-enabled=false --formatter-enabled=false .
 npm run format
 ```
+
+✓ La vérification ne doit afficher aucune erreur `deserialize` ni `unknown key`. Si c'est le cas, corriger le `biome.json` avant de continuer.
 
 🟡 Attention
 Cette commande crée le `.gitignore` racine, ou l'écrase s'il existe déjà. Elle ne touche à aucun fichier `.env` ni `.env.sample`.
