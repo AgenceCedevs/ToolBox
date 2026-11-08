@@ -303,5 +303,5 @@ http://localhost:3310/api/health
 
 ```bash
 git add .
-git commit -m "feat: description de vos modifications"
+git commit -m "Base Monorepo 03"
 ```

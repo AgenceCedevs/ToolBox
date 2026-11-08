@@ -647,5 +647,5 @@ Heure : 01/04/2026 14:00:00
 
 ```bash
 git add .
-git commit -m "feat: description de vos modifications"
+git commit -m "Base Monorepo 04"
 ```

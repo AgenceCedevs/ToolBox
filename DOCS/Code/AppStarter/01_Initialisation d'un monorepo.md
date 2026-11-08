@@ -91,11 +91,17 @@ require('fs').writeFileSync('biome.json', JSON.stringify({
   vcs: { enabled: true, clientKind: 'git', useIgnoreFile: true },
   files: { ignoreUnknown: false, includes: ['**', '!**/node_modules'] },
   formatter: { enabled: true, indentStyle: 'tab', lineWidth: 320 },
-  linter: { enabled: true, rules: { recommended: true } },
-  overrides: [{
-    includes: ['web/src/vite-env.d.ts'],
-    linter: { rules: { correctness: { noUnusedVariables: 'off' } } }
-  }],
+  linter: { enabled: true, rules: { preset: 'recommended' } },
+  overrides: [
+    {
+      includes: ['web/src/vite-env.d.ts'],
+      linter: { rules: { correctness: { noUnusedVariables: 'off' } } }
+    },
+    {
+      includes: ['web/public/**/*.svg', 'web/src/assets/**/*.svg'],
+      linter: { rules: { a11y: { noSvgWithoutTitle: 'off' } } }
+    }
+  ],
   javascript: { formatter: { quoteStyle: 'double' } },
   assist: { enabled: true, actions: { source: { organizeImports: 'on' } } }
 }, null, 2))
@@ -1723,5 +1729,5 @@ Personnaliser le message de commit ci-dessous avant de lancer la commande.
 ▷ Committer la structure initiale.
 
 ```bash
-git commit -m "feat: Sauvegarde module 01"
+git commit -m "Base Monorepo 01"
 ```

@@ -9,6 +9,8 @@ Les constantes stables (comme ROUTE_HOME) sont importées depuis le workspace `@
 - Le routing est configuré via createBrowserRouter, avec un Layout commun (Header + Footer) et une page 404.
 - Les métadonnées SEO sont gérées par un composant réutilisable, défini par page ; la page 404 est marquée noindex.
 - Les fichiers générés par le template Vite non nécessaires (App.css, index.css, les images par défaut de assets/ et les icônes inutilisées de public/) sont supprimés.
+- Un favicon propre au projet remplace celui du template Vite.
+- Un logo propre au projet s'affiche dans le Header.
 - Biome valide le code sans erreur.
 
 <!-- ------------------------------------ -->
@@ -39,6 +41,7 @@ Créer l'arborescence du projet web en deux catégories :
 
 - components/ : avec les sous-dossiers header, footer, layout et seo pour les éléments réutilisables.
 - pages/ : avec homePage, notFoundPage pour les pages principales.
+
 ▷ Créer tous les dossiers nécessaires en une seule commande depuis la racine.
 
 ```bash
@@ -62,6 +65,8 @@ touch web/src/pages/notFoundPage/NotFoundPage.tsx
 touch web/src/pages/notFoundPage/NotFoundPage.css
 touch web/src/router.tsx
 touch web/src/global.css
+touch web/src/assets/logo_app.svg
+touch web/public/favicon_app.svg
 ```
 
 <!-- ------------------------------------ -->
@@ -69,23 +74,22 @@ touch web/src/global.css
 ▷ Ouvrir le fichier web/src/components/footer/Footer.tsx et coller le contenu suivant.
 
 ```typescript
+import logo from "../../assets/logo_app.svg";
+
 function Footer() {
 	const year = new Date().getFullYear();
 
 	return (
 		<footer className="footer">
-			<strong>{import.meta.env.VITE_APP_NAME}</strong>
+			<strong className="footer-brand">
+				<img src={logo} alt="logo_app" className="footer-logo-img" />
+				{import.meta.env.VITE_APP_NAME}
+			</strong>
 			<p>
 				Tous droits réservés | site internet développé par{" "}
-				<strong>
-					<a
-						href="https://cedevs.fr"
-						target="_blank"
-						rel="noopener noreferrer"
-					>
-						cedevs.fr
-					</a>
-				</strong>{" "}
+				<a className="footer-link" href="https://cedevs.fr" target="_blank" rel="noopener noreferrer">
+					cedevs.fr
+				</a>{" "}
 				- Hébergé en France
 			</p>
 			<p>© {year}</p>
@@ -101,13 +105,15 @@ export default Footer;
 ▷ Ouvrir le fichier web/src/components/header/Header.tsx et coller le contenu suivant.
 
 ```typescript
+import { constants } from "@shared";
 import { Link } from "react-router";
-import { constants } from "@appstarter/shared";
+import logo from "../../assets/logo_app.svg";
 
 function Header() {
 	return (
 		<header className="header">
 			<Link to={constants.ROUTE_HOME} className="header-logo">
+			<img src={logo} alt="logo_app" className="header-logo-img" />
 				{import.meta.env.VITE_APP_NAME}
 			</Link>
 			<nav className="header-nav" aria-label="Navigation principale">
@@ -128,6 +134,9 @@ function Header() {
 export default Header;
 ```
 
+🔵 Info
+Le logo est importé depuis web/src/assets/logo_app.svg, créé à l'étape 03. L'attribut `alt` est vide car le nom de l'application est déjà affiché à côté : le logo est décoratif. Tant que le fichier est vide, le navigateur n'affiche aucune image : y coller le SVG du projet.
+
 <!-- ------------------------------------ -->
 # 06 - web > src > components > layout > Remplir le composant Layout.tsx
 
@@ -136,7 +145,6 @@ Le Layout est le composant parent commun à toutes les pages. Il contient le Hea
 ▷ Ouvrir le fichier web/src/components/layout/Layout.tsx et coller le contenu suivant.
 
 ```typescript
-
 import { Outlet } from "react-router";
 import Footer from "../footer/Footer";
 import Header from "../header/Header";
@@ -158,8 +166,78 @@ function Layout() {
 
 export default Layout;
 ```
+
 <!-- ------------------------------------ -->
-# 07 - web > src > pages > homePage > Remplir le style HomePage.css
+# 07 - web > src > components > seo > Créer le composant réutilisable Seo
+
+🔵 Info
+Chaque page fournit ses propres métadonnées au composant. Le nom du site et son URL viennent des variables web/.env ; le titre, la description et le chemin sont définis près de la page concernée.
+
+▷ Depuis la racine du monorepo, installer react-helmet-async.
+
+```bash
+npm install react-helmet-async -w web
+```
+
+▷ Ouvrir web/src/components/seo/Seo.tsx et coller le contenu suivant.
+
+```tsx
+import { Helmet } from "react-helmet-async";
+
+interface SeoProps {
+	title?: string;
+	description: string;
+	path?: string;
+	image?: string;
+	ogTitle?: string;
+	ogDescription?: string;
+	noIndex?: boolean;
+}
+
+function Seo({
+	title,
+	description,
+	path,
+	image = "/og-image.webp",
+	ogTitle,
+	ogDescription,
+	noIndex = false,
+}: SeoProps) {
+	const siteUrl = new URL(import.meta.env.VITE_APP_URL);
+	const fullTitle = title
+	? `${title} | ${import.meta.env.VITE_APP_NAME}`
+	: import.meta.env.VITE_APP_NAME;
+	const socialTitle = ogTitle ?? fullTitle;
+	const socialDescription = ogDescription ?? description;
+	const canonicalUrl = path ? new URL(path, siteUrl).toString() : undefined;
+	const imageUrl = new URL(image, siteUrl).toString();
+
+	return (
+		<Helmet>
+			<title>{fullTitle}</title>
+			<meta name="description" content={description} />
+			<meta
+				name="robots"
+				content={noIndex ? "noindex, nofollow" : "index, follow"}
+			/>
+			{canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+			<meta property="og:type" content="website" />
+			{canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
+			<meta property="og:title" content={socialTitle} />
+			<meta property="og:description" content={socialDescription} />
+			<meta property="og:image" content={imageUrl} />
+		</Helmet>
+	);
+}
+
+export default Seo;
+```
+
+🔵 Info
+`image` peut être un chemin depuis `web/public/` ou une URL absolue. Le composant utilise `/og-image.webp` par défaut : ajouter le fichier correspondant dans `web/public/`, ou modifier cette valeur par défaut pour pointer vers une image existante. Une page peut fournir une image différente avec la propriété `image`. `ogTitle` et `ogDescription` sont facultatifs ; lorsqu'ils ne sont pas fournis, ils reprennent le titre et la description de la page.
+
+<!-- ------------------------------------ -->
+# 08 - web > src > pages > homePage > Remplir le style HomePage.css
 
 ▷ Ouvrir le fichier web/src/pages/homePage/HomePage.css et coller le contenu suivant.
 
@@ -998,79 +1076,11 @@ h2 {
 ```
 
 <!-- ------------------------------------ -->
-# 08 - web > src > components > seo > Créer le composant réutilisable Seo
-
-🔵 Info
-Chaque page fournit ses propres métadonnées au composant. Le nom du site et son URL viennent des variables web/.env ; le titre, la description et le chemin sont définis près de la page concernée.
-
-▷ Depuis la racine du monorepo, installer react-helmet-async.
-
-```bash
-npm install react-helmet-async -w web
-```
-
-▷ Ouvrir web/src/components/seo/Seo.tsx et coller le contenu suivant.
-
-```tsx
-import { Helmet } from "react-helmet-async";
-
-interface SeoProps {
-	title: string;
-	description: string;
-	path?: string;
-	image?: string;
-	ogTitle?: string;
-	ogDescription?: string;
-	noIndex?: boolean;
-}
-
-function Seo({
-	title,
-	description,
-	path,
-	image = "/og-image.webp",
-	ogTitle,
-	ogDescription,
-	noIndex = false,
-}: SeoProps) {
-	const siteUrl = new URL(import.meta.env.VITE_APP_URL);
-	const fullTitle = `${title} | ${import.meta.env.VITE_APP_NAME}`;
-	const socialTitle = ogTitle ?? fullTitle;
-	const socialDescription = ogDescription ?? description;
-	const canonicalUrl = path ? new URL(path, siteUrl).toString() : undefined;
-	const imageUrl = new URL(image, siteUrl).toString();
-
-	return (
-		<Helmet>
-			<title>{fullTitle}</title>
-			<meta name="description" content={description} />
-			<meta
-				name="robots"
-				content={noIndex ? "noindex, nofollow" : "index, follow"}
-			/>
-			{canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
-			<meta property="og:type" content="website" />
-			{canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
-			<meta property="og:title" content={socialTitle} />
-			<meta property="og:description" content={socialDescription} />
-			<meta property="og:image" content={imageUrl} />
-		</Helmet>
-	);
-}
-
-export default Seo;
-```
-
-🔵 Info
-`image` peut être un chemin depuis `web/public/` ou une URL absolue. Le composant utilise `/og-image.webp` par défaut : ajouter le fichier correspondant dans `web/public/`, ou modifier cette valeur par défaut pour pointer vers une image existante. Une page peut fournir une image différente avec la propriété `image`. `ogTitle` et `ogDescription` sont facultatifs ; lorsqu'ils ne sont pas fournis, ils reprennent le titre et la description de la page.
-
-<!-- ------------------------------------ -->
 # 09 - web > src > pages > homePage > Remplir la page HomePage.tsx
 
 ▷ Ouvrir le fichier web/src/pages/homePage/HomePage.tsx et coller le contenu suivant.
 
 ```tsx
-
 import Seo from "../../components/seo/Seo";
 import "./HomePage.css";
 
@@ -1138,7 +1148,6 @@ function HomePage() {
 	return (
 		<>
 			<Seo
-				title="Monorepo web et mobile"
 				description="Découvrez une base de projet web et mobile organisée autour de React, TypeScript et des outils modernes."
 				path="/"
 				ogTitle="AppStarter - Construire un monorepo web et mobile"
@@ -1482,7 +1491,6 @@ export default HomePage;
 ▷ Ouvrir le fichier web/src/pages/notFoundPage/NotFoundPage.tsx et coller le contenu suivant.
 
 ```typescript
-
 import "./NotFoundPage.css";
 import { Link, useLocation } from "react-router";
 import Seo from "../../components/seo/Seo";
@@ -1525,7 +1533,6 @@ export default NotFoundPage;
 ▷ Ouvrir le fichier web/src/App.tsx et remplacer le contenu existant par le contenu suivant.
 
 ```typescript
-
 import { HelmetProvider } from "react-helmet-async";
 import { RouterProvider } from "react-router";
 import router from "./router";
@@ -1544,7 +1551,6 @@ export default App;
 # 13 - web > src > Remplir global.css
 
 ▷ Ouvrir le fichier web/src/global.css et coller le contenu suivant.
-
 
 ```css
 /* ──────────────────────────────────────────
@@ -1667,7 +1673,13 @@ body {
 	align-items: center;
 }
 
+.header-logo-img {
+	height: 2rem;
+	width: auto;
+}
+
 .header-logo {
+	gap: 0.5rem;
 	display: inline-flex;
 	align-items: center;
 	min-height: 44px;
@@ -1708,6 +1720,32 @@ body {
 	align-items: center;
 	justify-content: center;
 	gap: var(--spacing-sm);
+}
+
+.footer-brand {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.footer-logo-img {
+	height: 2rem;
+	width: auto;
+}
+
+.footer-link {
+	color: var(--white);
+	font-weight: 700;
+	text-decoration: underline;
+	text-decoration-color: var(--accent-mid);
+	text-decoration-thickness: 2px;
+	text-underline-offset: 0.2em;
+	transition: text-decoration-color 0.2s ease, color 0.2s ease;
+}
+
+.footer-link:hover {
+	color: var(--accent-light);
+	text-decoration-color: var(--white);
 }
 
 /* =============================================================================
@@ -1780,7 +1818,6 @@ Les règles html, body, #root garantissent que l'élément root occupe toute la 
 ▷ Ouvrir le fichier web/src/main.tsx et remplacer le contenu existant par le contenu suivant.
 
 ```typescript
-
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./global.css";
@@ -1804,7 +1841,6 @@ ReactDOM.createRoot(rootElement).render(
 ▷ Ouvrir le fichier web/src/router.tsx et coller le contenu suivant.
 
 ```tsx
-
 import { useEffect, useRef } from "react";
 import { createBrowserRouter, Outlet, useLocation } from "react-router";
 import Layout from "./components/layout/Layout";
@@ -1854,11 +1890,8 @@ touch web/src/vite-env.d.ts
 ```
 ▷ Ouvrir le fichier web/src/vite-env.d.ts et ajouter le contenu suivant.
 
-
 ```typescript
-
 /// <reference types="vite/client" />
-
 interface ImportMetaEnv {
 	readonly VITE_APP_NAME: string;
 	readonly VITE_APP_URL: string;
@@ -1894,6 +1927,7 @@ Le index.html généré par Vite contient des références au logo Vite. Le remp
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" type="image/svg+xml" href="/favicon_app.svg" />
     <title>%VITE_APP_NAME%</title>
   </head>
   <body>
@@ -1918,23 +1952,26 @@ Le fichier tsconfig.json configure TypeScript pour le projet. Il active le mode 
 ▷ Ouvrir le fichier web/tsconfig.json et remplacer le contenu existant par le contenu suivant.
 
 ```json
-
 {
-  "compilerOptions": {
-    "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "jsx": "react-jsx",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-	"noEmit": true,
-    "forceConsistentCasingInFileNames": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "paths": { "@/*": ["./src/*"] }
-  },
-  "include": ["src"]
+	"compilerOptions": {
+		"target": "ESNext",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"jsx": "react-jsx",
+		"strict": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"noEmit": true,
+		"forceConsistentCasingInFileNames": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"paths": {
+			"@/*": ["./src/*"],
+			"@shared": ["../shared/src/index.ts"],
+			"@shared/*": ["../shared/src/*"]
+		}
+	},
+	"include": ["src"]
 }
 ```
 
@@ -1945,7 +1982,6 @@ Le fichier tsconfig.node.json configure TypeScript pour les fichiers de configur
 ▷ Ouvrir le fichier web/tsconfig.node.json et remplacer le contenu existant par le contenu suivant.
 
 ```json
-
 {
   "compilerOptions": {
     "target": "ES2023",
@@ -1967,7 +2003,6 @@ Le vite.config.ts généré par le template est remplacé pour charger les varia
 ▷ Ouvrir le fichier web/vite.config.ts et remplacer le contenu existant par le contenu suivant.
 
 ```typescript
-
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
@@ -1987,14 +2022,7 @@ export default defineConfig(({ mode }) => {
 	const logger = createLogger();
 	const loggerInfo = logger.info;
 	logger.info = (msg, options) => {
-		if (
-			msg.includes("Local") ||
-			msg.includes("Network") ||
-			msg.includes("ready in") ||
-			msg.includes("VITE v") ||
-			msg.includes("is in use")
-		)
-			return;
+		if (msg.includes("Local") || msg.includes("Network") || msg.includes("ready in") || msg.includes("VITE v") || msg.includes("is in use")) return;
 		loggerInfo(msg, options);
 	};
 
@@ -2007,19 +2035,14 @@ export default defineConfig(({ mode }) => {
 				configureServer(server) {
 					server.httpServer?.once("listening", () => {
 						const address = server.httpServer?.address();
-						const actualPort =
-							typeof address === "object" && address ? address.port : webPort;
+						const actualPort = typeof address === "object" && address ? address.port : webPort;
 
 						console.log("\n=========================================");
 						console.log("🔵 CLIENT WEB");
 						console.log("=========================================");
 						console.log(`🔵 NODE_ENV : ${mode}`);
-						console.log(
-							`🟢 Client démarré sur : ${BLUE}http://localhost:${actualPort}${RESET}`,
-						);
-						console.log(
-							`🟢 Proxy API vers : ${BLUE}http://localhost:${apiPort}${RESET}`,
-						);
+						console.log(`🟢 Client démarré sur : ${BLUE}http://localhost:${actualPort}${RESET}`);
+						console.log(`🟢 Proxy API vers : ${BLUE}http://localhost:${apiPort}${RESET}`);
 						console.log("=========================================\n");
 					});
 				},
@@ -2035,7 +2058,10 @@ export default defineConfig(({ mode }) => {
 			},
 		},
 		resolve: {
-			alias: { "@": resolve(configDir, "src") },
+			alias: {
+				"@": resolve(configDir, "src"),
+				"@shared": resolve(monorepoRoot, "shared/src"),
+			},
 		},
 	};
 });
@@ -2047,30 +2073,10 @@ export default defineConfig(({ mode }) => {
 
 ```bash
 rm -rf web/src/App.css web/src/index.css
-rm -rf web/src/assets/hero.png web/src/assets/react.svg web/src/assets/vite.svg web/public/vite.svg web/public/favicon.svg web/public/icons.svg
+rm -rf web/src/assets/hero.png web/src/assets/react.svg web/src/assets/vite.svg web/public/vite.svg web/public/icons.svg
 ```
 <!-- ------------------------------------ -->
-# 22 - racine > Vérifier le workspace web/ avec Biome
-
-▷ Depuis la racine, lancer le lint et le formatage après avoir créé les fichiers frontend.
-
-```bash
-npm run fix
-```
-🔵 Sortie attendue
-
-```text
-> appStarter2@1.0.0 fix
-> biome lint --write . && biome format --write .
-
-Checked 37 files in 100ms. No fixes applied.
-Formatted 36 files in 40ms. Fixed 1 file.
-```
-🟡 Attention
-Les configurations Biome et les exceptions aux règles sont définies directement dans les fichiers des étapes 04 du module 01 et dans les extraits ci-dessus. Si `npm run fix` échoue encore, corriger l'erreur indiquée avant de continuer.
-
-<!-- ------------------------------------ -->
-# 23 - racine > Lancer le frontend
+# 22 - racine > Lancer le frontend
 
 ▷ Tester l'application à l'adresse http://localhost:5173/ dans le navigateur.
 
@@ -2078,6 +2084,7 @@ Les configurations Biome et les exceptions aux règles sont définies directemen
 npm run dev:web
 ```
 Cette commande racine compile d'abord `shared/`, puis lance Vite dans le workspace web. Le serveur Express n'est pas démarré par cette commande ; le proxy `/api` ne répondra donc que si le serveur est lancé séparément ou si l'étape de démarrage complet du module 1 est utilisée.
+
 🔵 Sortie attendue
 ```text
 > appStarter@1.0.0 dev:web
@@ -2102,7 +2109,7 @@ Cette commande racine compile d'abord `shared/`, puis lance Vite dans le workspa
   ➜  press h + enter to show help
 ```
 <!-- ------------------------------------ -->
-# 24 - web > Ajouter un prérendu HTML facultatif
+# 23 - web > Ajouter un prérendu HTML
 
 Une application React classique envoie surtout une coquille HTML, puis construit son contenu dans le navigateur. Pour les pages publiques dont le référencement compte, le prérendu peut produire le HTML et les métadonnées par route avant leur livraison ; c'est préférable à une coquille vide, sans garantir l'indexation par un moteur ou un service d'IA.
 
@@ -2120,28 +2127,8 @@ touch web/scripts/prerender.mjs
 🟡 Attention
 Dans Git Bash, `&&` arrête la suite si l'installation échoue. Ne lancez pas `npm run build -w web` tant que le script `web/scripts/prerender.mjs` n'a pas été rempli avec le code ci-dessous : un fichier vide permettrait au postbuild de réussir sans générer de HTML prérendu.
 
-🔵 Vérification de l'installation
-```bash
-npm ls puppeteer -w web
-```
-La sortie doit montrer Puppeteer sous le workspace `web`.
-
-🟡 Dépannage : erreur Arborist pendant `npm install`
-Si npm échoue avec `Cannot read properties of null (reading 'location')` dans `@npmcli/arborist` et signale ensuite un lockfile caché obsolète ou une erreur `edgesOut`, ne supprimez pas `package-lock.json`, ne videz pas le cache npm et ne restaurez pas les modifications des fichiers manifestes. Vérifiez d'abord `git status --short` et les différences de `package.json`/`package-lock.json`. Mettre à jour npm seul n'a pas résolu le cas observé ; npm 12 n'est pas compatible avec Node 22.14.0, et npm 10 a échoué de la même façon.
-
-Si l'installation locale est incohérente, sauvegardez les dossiers `node_modules` existants au lieu de les supprimer. Depuis la racine du monorepo, vérifiez que les noms de sauvegarde sont libres ; si l'un existe déjà, choisissez d'autres noms avant de continuer :
-
-Uniquement si ces noms de sauvegarde sont libres, déplacez les dossiers qui existent, réinstallez les dépendances du monorepo, puis réessayez l'installation de Puppeteer :
-
-```bash
-if [ -e node_modules.backup ] || [ -e web/node_modules.backup ]; then echo "Un nom de sauvegarde existe déjà ; choisissez-en un autre."; exit 1; fi
-if [ -d node_modules ]; then mv node_modules node_modules.backup || exit 1; fi
-if [ -d web/node_modules ]; then mv web/node_modules web/node_modules.backup || exit 1; fi
-npm install &&
-npm install --save-dev puppeteer -w web
-```
-
-Cette procédure a permis de réinstaller les dépendances et Puppeteer sans supprimer les installations précédentes. Gardez les sauvegardes jusqu'à ce que le build et le prérendu soient vérifiés. Si l'erreur persiste, arrêtez-vous et examinez le nouveau journal npm avant toute autre modification.
+<!-- ------------------------------------ -->
+# 24 - web > Remplir le script de prérendu
 
 ▷ Ouvrir web/scripts/prerender.mjs et coller le script suivant.
 
@@ -2160,6 +2147,7 @@ const MAX_ROUTES = 250;
 const EXTRA_SEED_ROUTES = [];
 const EXCLUDED_PREFIXES = [];
 const ORIGIN = `http://127.0.0.1:${PORT}`;
+let spaTemplate = Buffer.alloc(0);
 
 const MIME_TYPES = {
 	".css": "text/css",
@@ -2177,9 +2165,7 @@ const MIME_TYPES = {
 };
 
 function isExcluded(route) {
-	return EXCLUDED_PREFIXES.some(
-		(prefix) => route === prefix || route.startsWith(`${prefix}/`),
-	);
+	return EXCLUDED_PREFIXES.some((prefix) => route === prefix || route.startsWith(`${prefix}/`));
 }
 
 function normalizeRoute(href) {
@@ -2233,7 +2219,7 @@ function startServer() {
 		const targetPath = hasExtension ? filePath : path.join(DIST_DIR, "index.html");
 
 		try {
-			const content = await readFile(targetPath);
+			const content = hasExtension ? await readFile(targetPath) : spaTemplate;
 			const contentType = MIME_TYPES[path.extname(targetPath)] ?? "application/octet-stream";
 			response.writeHead(200, { "Content-Type": `${contentType}; charset=utf-8` }).end(content);
 		} catch (error) {
@@ -2257,17 +2243,7 @@ async function prerenderRoute(browser, route) {
 	try {
 		await page.goto(`${ORIGIN}${route}`, { waitUntil: "networkidle2", timeout: 30000 });
 		await page.evaluate(() => {
-			const selectors = [
-				"title",
-				'meta[name="description"]',
-				'meta[name="robots"]',
-				'link[rel="canonical"]',
-				'meta[property="og:type"]',
-				'meta[property="og:url"]',
-				'meta[property="og:title"]',
-				'meta[property="og:description"]',
-				'meta[property="og:image"]',
-			];
+			const selectors = ["title", 'meta[name="description"]', 'meta[name="robots"]', 'link[rel="canonical"]', 'meta[property="og:type"]', 'meta[property="og:url"]', 'meta[property="og:title"]', 'meta[property="og:description"]', 'meta[property="og:image"]'];
 
 			for (const selector of selectors) {
 				const elements = document.head.querySelectorAll(selector);
@@ -2276,9 +2252,7 @@ async function prerenderRoute(browser, route) {
 				}
 			}
 		});
-		const links = await page.$$eval("a[href]", (anchors) =>
-			anchors.map((anchor) => anchor.getAttribute("href") ?? ""),
-		);
+		const links = await page.$$eval("a[href]", (anchors) => anchors.map((anchor) => anchor.getAttribute("href") ?? ""));
 		const html = (await page.content()).replaceAll(ORIGIN, "");
 		const outputDir = path.resolve(DIST_DIR, `.${route}`);
 
@@ -2297,11 +2271,12 @@ async function main() {
 		throw new Error("dist/index.html introuvable. Lancez d'abord `npm run build -w web`.");
 	}
 
+	spaTemplate = await readFile(path.join(DIST_DIR, "index.html"));
 	const server = await startServer();
 	let browser;
 
 	try {
-		browser = await puppeteer.launch();
+		browser = await puppeteer.launch({ args: ["--no-sandbox", "--disable-setuid-sandbox"] });
 		const visited = new Set();
 		const queue = ["/", ...EXTRA_SEED_ROUTES.map(normalizeRoute).filter(Boolean)];
 
@@ -2341,6 +2316,9 @@ main().catch((error) => {
 
 Pour inclure une route qui n'est liée depuis aucune page, l'ajouter à `EXTRA_SEED_ROUTES`. Ajouter à `EXCLUDED_PREFIXES` les routes privées ou qui ne doivent pas être générées. Le crawler ne suit que les liens internes sans extension de fichier ; les liens externes, les ressources et les paramètres d'URL ne créent pas de nouvelles pages.
 
+<!-- ------------------------------------ -->
+# 25 - web > Vérifier le prérendu
+
 ▷ Vérifier le prérendu en lançant le build web depuis la racine.
 
 ```bash
@@ -2350,27 +2328,21 @@ npm run build -w web
 Vérifier que `npm ls puppeteer -w web` indique une installation dans `web`, puis que le build se termine avec `> web@... postbuild` et `Prérendu terminé`. Un avertissement Vite sur la taille d'un chunk supérieur à 500 kB n'est pas, à lui seul, un échec du build. Vérifier ensuite que `web/dist/index.html` et les fichiers tels que `web/dist/une-route/index.html` contiennent le contenu rendu et une seule balise pour chaque métadonnée fournie par `Seo`. Les routes doivent être accessibles en production avec le fichier `index.html` du dossier correspondant ; configurer l'hébergeur pour servir ces fichiers avant tout fallback SPA. Le composant React 404 n'impose pas à lui seul un statut HTTP 404 : configurer et tester le comportement 404 de l'hébergeur. Ne pas prérendre de pages privées ou de contenu personnalisé par utilisateur.
 
 <!-- ------------------------------------ -->
-# 25 - web > Vérifier les critères avant PageSpeed Insights
+# 26 - racine > Corriger les fichiers du template Vite et lancer le lint
 
-▷ Construire le frontend depuis la racine pour détecter les erreurs de compilation.
+Les fichiers générés par le template Vite, ainsi que le script de prérendu ajouté aux étapes précédentes, ne respectent pas forcément le formatage et les règles de Biome. La commande `fix` applique les corrections automatiques à tout le monorepo et signale les problèmes qui demandent une correction manuelle.
+
+▷ Depuis la racine du monorepo, lancer `npm run fix`.
 
 ```bash
-npm run build -w web
+npm run fix
 ```
 
-▷ Tester le site construit ou déployé avant l'audit :
-
-- Parcourir la page uniquement au clavier ; vérifier l'ordre de tabulation, le lien « Aller au contenu principal » et le contour de focus visible.
-- Parcourir les liens de navigation et vérifier qu'ils conduisent tous à une section existante.
-- Activer la préférence système de réduction des animations et vérifier que le contenu reste immédiatement lisible.
-- Vérifier l'affichage à 320 px de largeur et à fort zoom, sans défilement horizontal.
-- Lancer Lighthouse ou PageSpeed Insights en mobile et ordinateur sur l'URL de production ; traiter les diagnostics réels du build et du contenu plutôt que de viser un score garanti.
-
 <!-- ------------------------------------ -->
-# 26 - racine > Sauvegarder les modifications
+# 27 - racine > Sauvegarder les modifications
 ▷ Ajouter les fichiers et commiter les modifications.
 
 ```bash
 git add .
-git commit -m "feat: description de vos modifications"
+git commit -m "Base Monorepo 02"
 ```
