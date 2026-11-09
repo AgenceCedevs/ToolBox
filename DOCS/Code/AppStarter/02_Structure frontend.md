@@ -1942,7 +1942,11 @@ Le index.html généré par Vite contient des références au logo Vite. Le remp
 </html>
 ```
 
-Vite remplace `%VITE_APP_NAME%` à la compilation. Les métadonnées propres à chaque page sont ajoutées par le composant `Seo` après le chargement de React ; le prérendu facultatif les inscrit dans le HTML généré pour les robots qui ne lancent pas JavaScript. Cela évite d'avoir des balises génériques en double dans le navigateur. `VITE_APP_URL` doit être l'URL publique du site en production ; en développement, sa valeur dans web/.env.sample peut rester `http://localhost:5173`. Ajouter `web/public/og-image.webp` ou fournir une autre image avec la propriété `image` de `Seo`.
+▷ Revenir à la racine du monorepo et relancer ce script update-package-name.ts. pour remplacer le %VITE_APP_NAME%
+
+```bash
+npx tsx setup/update-package-name.ts
+```
 
 <!-- ==================================== -->
 # 18 - web > Mettre à jour tsconfig.json
@@ -2335,6 +2339,7 @@ Les fichiers générés par le template Vite, ainsi que le script de prérendu a
 ▷ Depuis la racine du monorepo, lancer `npm run fix`.
 
 ```bash
+npx biome migrate --write
 npm run fix
 ```
 

@@ -60,7 +60,7 @@ touch server/src/routes/health.router.ts
 ```
 <!-- ==================================== -->
 # 03 - server > Mettre à jour package.json
-Le package.json du serveur déclare le format CommonJS utilisé par la compilation, les dépendances et les scripts de développement, de build et de démarrage.
+Le package.json du serveur déclare le format ES modules utilisé par la compilation, les dépendances et les scripts de développement, de build et de démarrage.
 
 ▷ Ouvrir server/package.json et remplacer son contenu par le manifeste suivant. Les dépendances doivent également être installées à la racine du monorepo.
 
@@ -78,9 +78,9 @@ Le package.json du serveur déclare le format CommonJS utilisé par la compilati
 	"keywords": [],
 	"author": "",
 	"license": "ISC",
-	"type": "commonjs",
+	"type": "module",
 	"dependencies": {
-		"@appstarter/shared": "*",
+		"@appStarter/shared": "*",
 		"bcrypt": "latest",
 		"cloudinary": "latest",
 		"cookie-parser": "latest",
@@ -107,7 +107,7 @@ Le package.json du serveur déclare le format CommonJS utilisé par la compilati
 ```
 
 🔵 Info
-Le script `dev` lance le serveur avec rechargement automatique. Le script `build` compile `server/src/` vers `server/dist/`, et `start` exécute ensuite ce build. Le type `commonjs` doit rester cohérent avec le `tsconfig.json` du serveur.
+Le script `dev` lance le serveur avec rechargement automatique. Le script `build` compile `server/src/` vers `server/dist/`, et `start` exécute ensuite ce build. Le type `module` doit rester cohérent avec le `tsconfig.json` du serveur.
 
 <!-- ==================================== -->
 # 04 - server > Mettre à jour tsconfig.json
@@ -213,6 +213,8 @@ app.listen(PORT, async () => {
 export default app;
 ```
 
+<!-- ==================================== -->
+<!-- ==================================== -->
 <!-- ==================================== -->
 # 07 - racine > Mettre à jour tsconfig.json
 🟡 Attention

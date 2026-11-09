@@ -78,38 +78,50 @@ npm pkg set devDependencies.typescript="latest"
 npm pkg set devDependencies.@types/node="latest"
 npm pkg set devDependencies.tsx="latest"
 npm pkg set devDependencies.dotenv="latest"
-npm pkg set scripts.postinstall="node -e \"const v = require('@biomejs/biome/package.json').version; const fs = require('fs'); const c = JSON.parse(fs.readFileSync('biome.json')); c['\x24schema'] = 'https://biomejs.dev/schemas/' + v + '/schema.json'; fs.writeFileSync('biome.json', JSON.stringify(c, null, 2))\""
+npm pkg set scripts.postinstall="node setup/sync-biome-schema.mjs"
+mkdir -p setup
+cat > setup/sync-biome-schema.mjs <<'EOF'
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+
+if (!existsSync("biome.json")) process.exit(0);
+
+const { version } = JSON.parse(readFileSync("node_modules/@biomejs/biome/package.json", "utf8"));
+const config = JSON.parse(readFileSync("biome.json", "utf8"));
+config.$schema = `https://biomejs.dev/schemas/${version}/schema.json`;
+writeFileSync("biome.json", JSON.stringify(config, null, "\t") + "\n");
+EOF
 ```
 
 <!-- ==================================== -->
 # 04 - racine > Créer le fichier de configuration biome.json
-Ce fichier configure Biome pour ignorer node_modules, le README et les fichiers générés par la vérification du monorepo (rapports `.md` et feuille de style), formater avec des tabulations et des guillemets doubles, et activer les règles recommandées. Sans lui, Biome scanne node_modules et peut se bloquer.
+Ce fichier configure Biome pour ignorer node_modules, les dossiers dist, le README et les fichiers générés par la vérification du monorepo (rapports `.md` et feuille de style), formater avec des tabulations et des guillemets doubles, et activer les règles recommandées. Sans lui, Biome scanne node_modules et peut se bloquer.
 
 ▷ Créer le fichier biome.json à la racine avec la configuration nécessaire.
 
 ```bash
-node -e "
-const v = require('@biomejs/biome/package.json').version;
-require('fs').writeFileSync('biome.json', JSON.stringify({
-  '\$schema': 'https://biomejs.dev/schemas/' + v + '/schema.json',
-  vcs: { enabled: true, clientKind: 'git', useIgnoreFile: true },
-  files: { ignoreUnknown: false, includes: ['**', '!**/node_modules', '!README.md', '!setup/verify_monorepo/verify-report-*.md', '!setup/verify_monorepo/report.css'] },
-  formatter: { enabled: true, indentStyle: 'tab', lineWidth: 320 },
-  linter: { enabled: true, rules: { preset: 'recommended' } },
-  overrides: [
-    {
-      includes: ['web/src/vite-env.d.ts'],
-      linter: { rules: { correctness: { noUnusedVariables: 'off' } } }
-    },
-    {
-      includes: ['web/public/**/*.svg', 'web/src/assets/**/*.svg'],
-      linter: { rules: { a11y: { noSvgWithoutTitle: 'off' } } }
-    }
-  ],
-  javascript: { formatter: { quoteStyle: 'double' } },
-  assist: { enabled: true, actions: { source: { organizeImports: 'on' } } }
-}, null, 2))
-"
+[ -f biome.json ] || npx biome init
+npx biome migrate --write
+node --input-type=module <<'EOF'
+import { readFileSync, writeFileSync } from "node:fs";
+
+const config = JSON.parse(readFileSync("biome.json", "utf8"));
+
+config.vcs = { enabled: true, clientKind: "git", useIgnoreFile: true };
+config.files = {
+	...config.files,
+	ignoreUnknown: false,
+	includes: ["**", "!**/node_modules", "!**/dist", "!README.md", "!setup/verify_monorepo/verify-report-*.md", "!setup/verify_monorepo/report.css"],
+};
+config.formatter = { ...config.formatter, enabled: true, indentStyle: "tab", lineWidth: 320 };
+config.linter = { ...config.linter, enabled: true };
+config.overrides = [
+	{ includes: ["web/src/vite-env.d.ts"], linter: { rules: { correctness: { noUnusedVariables: "off" } } } },
+	{ includes: ["web/public/**/*.svg", "web/src/assets/**/*.svg"], linter: { rules: { a11y: { noSvgWithoutTitle: "off" } } } },
+];
+config.javascript = { ...config.javascript, formatter: { ...config.javascript?.formatter, quoteStyle: "double" } };
+
+writeFileSync("biome.json", JSON.stringify(config, null, "\t") + "\n");
+EOF
 ```
 
 Le premier `overrides` désactive la règle `noUnusedVariables` uniquement pour le fichier `web/src/vite-env.d.ts`. Dans ce fichier, on déclare des interfaces globales (par exemple ImportMetaEnv) qui ne sont jamais importées ni appelées dans ton code : c’est TypeScript lui-même qui les utilise pour typer import.meta.env. Biome les croirait donc inutilisées à tort. Partout ailleurs dans le monorepo, la règle reste active. Le second `overrides` désactive la règle `noSvgWithoutTitle` pour les SVG de `web/public` et `web/src/assets` : ce sont des icônes ou illustrations décoratives, pour lesquelles une balise `<title>` n'est pas nécessaire.
@@ -286,7 +298,8 @@ npm pkg delete scripts.test
 ```bash
 node --input-type=module -e 'import { writeFileSync } from "node:fs"; writeFileSync(".gitignore", "# Dependances\nnode_modules/\n\n# Environnement (les modeles restent versionnes)\n.env\n.env.*\n!.env.sample\n\n# Builds\ndist/\ndist-ssr/\ncoverage/\n*.tsbuildinfo\n\n# Logs\nlogs/\n*.log\nnpm-debug.log*\nyarn-debug.log*\nyarn-error.log*\npnpm-debug.log*\nlerna-debug.log*\n\n# Editeurs et systeme\n.vscode/*\n!.vscode/extensions.json\n.idea/\n.DS_Store\n*.suo\n*.ntvs*\n*.njsproj\n*.sln\n*.sw?\n*.local\n")'
 node --input-type=module -e "import { writeFileSync } from 'node:fs'; writeFileSync('.env.sample', '# App\nNODE_ENV=development\nPROJECT_NAME=PENDING_FOLDER_NAME\nWEB_PORT=5173\n\n# PostgreSQL\nPOSTGRES_USER=postgres_user\nPOSTGRES_PASSWORD=postgres_password\nPOSTGRES_DB=PENDING_FOLDER_NAME\nPGDATABASE=PENDING_FOLDER_NAME\nPGHOST=localhost\nPGPORT=5432\n\n# pgAdmin\nPGADMIN_EMAIL=admin_user\nPGADMIN_PASSWORD=admin_password\nPGADMIN_PORT=5050\n')"
-node --input-type=module -e "import { copyFileSync, constants } from 'node:fs'; copyFileSync('.env.sample', '.env', constants.COPYFILE_EXCL)"
+node --input-type=module -e 'import { copyFileSync, existsSync } from "node:fs"; if (!existsSync(".env")) copyFileSync(".env.sample", ".env")'
+node --input-type=module -e 'import { writeFileSync } from "node:fs"; const config = { $schema: "https://biomejs.dev/schemas/2.6.6/schema.json", vcs: { enabled: false, clientKind: "git", useIgnoreFile: false }, files: { ignoreUnknown: false, includes: ["**", "!**/node_modules", "!**/dist", "!**/dist-ssr", "!**/coverage", "!**/logs", "!**/.idea", "!**/.vscode", "!**/*.tsbuildinfo"] }, formatter: { enabled: true, indentStyle: "tab" }, linter: { enabled: true, rules: { recommended: true } }, javascript: { formatter: { quoteStyle: "double" } }, assist: { enabled: true, actions: { source: { organizeImports: "on" } } } }; writeFileSync("biome.json", JSON.stringify(config, null, "\t") + "\n")'
 ```
 
 Les règles `.env` et `.env.*` ignorent les fichiers d'environnement locaux à la racine et dans les workspaces. `!.env.sample` permet de versionner les modèles, notamment web/.env.sample, server/.env.sample et mobile/.env.sample.
@@ -667,9 +680,9 @@ async function stopProjectContainers(): Promise<void> {
 
 	if (OPTIONS.resetDb) {
 		log("🟡 --reset-db : les volumes du projet seront supprimés.", "warn");
-		tryRun("docker compose down --remove-orphans -v");
+		tryRun("docker compose --progress quiet down --remove-orphans -v");
 	} else {
-		tryRun("docker compose down --remove-orphans");
+		tryRun("docker compose --progress quiet down --remove-orphans");
 	}
 	log("🟢 Conteneurs du projet arrêtés (autres projets préservés).", "success");
 }
@@ -765,7 +778,7 @@ async function buildProject(): Promise<void> {
 
 async function startContainers(): Promise<void> {
 	step("6/8 - 75%", "Déploiement des conteneurs...");
-	run("docker compose up -d --build");
+	run("docker compose --progress quiet up -d --build");
 	log("🟢 Services démarrés", "success");
 }
 
@@ -997,7 +1010,6 @@ console.log(`
 🟢 CONFIGURATION TERMINÉE
 =========================
 `);
-
 ```
 
 <!-- ==================================== -->
@@ -1129,7 +1141,6 @@ try {
 } catch (error) {
 	console.error(`\n🔴 ERREUR :`, (error as Error).message);
 }
-
 ```
 
 <!-- ==================================== -->
@@ -2328,6 +2339,8 @@ Avant de lancer le serveur, créer le `.gitignore` à la racine du monorepo, pui
 node --input-type=module -e 'import { writeFileSync } from "node:fs"; writeFileSync(".gitignore", "# Dependances\nnode_modules/\n\n# Environnement (les modeles restent versionnes)\n.env\n.env.*\n!.env.sample\n\n# Builds\ndist/\ndist-ssr/\ncoverage/\n*.tsbuildinfo\n\n# Logs\nlogs/\n*.log\nnpm-debug.log*\nyarn-debug.log*\nyarn-error.log*\npnpm-debug.log*\nlerna-debug.log*\n\n# Editeurs et systeme\n.vscode/*\n!.vscode/extensions.json\n.idea/\n.DS_Store\n*.suo\n*.ntvs*\n*.njsproj\n*.sln\n*.sw?\n*.local\n")'
 npx biome check --linter-enabled=false --formatter-enabled=false .
 grep -q '"\$schema"' biome.json || { echo "biome.json : \$schema manquant"; exit 1; }
+grep -q '"vcs"' biome.json || { echo "biome.json : bloc vcs manquant"; exit 1; }
+grep -Eq '"useIgnoreFile"[[:space:]]*:[[:space:]]*true' biome.json || { echo "biome.json : useIgnoreFile doit valoir true"; exit 1; }
 npm run format
 ```
 
@@ -2340,14 +2353,14 @@ Cette commande crée le `.gitignore` racine, ou l'écrase s'il existe déjà. El
 Si Biome affiche `couldn't find an ignore file`, le `.gitignore` n'a pas été créé à la racine : vérifier le dossier courant avec `pwd`, relancer la commande de création depuis la racine du monorepo, puis relancer `npm run format`.
 
 🟡 Attention
-Pour un projet déjà créé avec une ancienne configuration, lancer `npx biome migrate`, puis vérifier que le `biome.json` racine contient l'exception `overrides` montrée à l'étape 04.
+Pour un projet déjà créé avec une ancienne configuration, lancer `npx biome migrate --write`, puis vérifier que le `biome.json` racine contient l'exception `overrides` montrée à l'étape 04.
 
 🔵 Sortie attendue
 ```text
 > appStarter@1.0.0 format
 > biome format --write .
 
-Formatted 33 files in 138ms. Fixed 18 files.
+Formatted 35 files in 44ms. Fixed 19 files.
 ```
 
 <!-- ==================================== -->
