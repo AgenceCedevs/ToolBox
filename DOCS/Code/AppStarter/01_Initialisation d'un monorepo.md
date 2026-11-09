@@ -78,7 +78,7 @@ npm pkg set devDependencies.typescript="latest"
 npm pkg set devDependencies.@types/node="latest"
 npm pkg set devDependencies.tsx="latest"
 npm pkg set devDependencies.dotenv="latest"
-npm pkg set scripts.postinstall="node -e \"const v = require('@biomejs/biome/package.json').version; const fs = require('fs'); const c = JSON.parse(fs.readFileSync('biome.json')); c['\$schema'] = 'https://biomejs.dev/schemas/' + v + '/schema.json'; fs.writeFileSync('biome.json', JSON.stringify(c, null, 2))\""
+npm pkg set scripts.postinstall="node -e \"const v = require('@biomejs/biome/package.json').version; const fs = require('fs'); const c = JSON.parse(fs.readFileSync('biome.json')); c['\x24schema'] = 'https://biomejs.dev/schemas/' + v + '/schema.json'; fs.writeFileSync('biome.json', JSON.stringify(c, null, 2))\""
 ```
 
 <!-- ==================================== -->
@@ -2327,6 +2327,7 @@ Avant de lancer le serveur, créer le `.gitignore` à la racine du monorepo, pui
 ```bash
 node --input-type=module -e 'import { writeFileSync } from "node:fs"; writeFileSync(".gitignore", "# Dependances\nnode_modules/\n\n# Environnement (les modeles restent versionnes)\n.env\n.env.*\n!.env.sample\n\n# Builds\ndist/\ndist-ssr/\ncoverage/\n*.tsbuildinfo\n\n# Logs\nlogs/\n*.log\nnpm-debug.log*\nyarn-debug.log*\nyarn-error.log*\npnpm-debug.log*\nlerna-debug.log*\n\n# Editeurs et systeme\n.vscode/*\n!.vscode/extensions.json\n.idea/\n.DS_Store\n*.suo\n*.ntvs*\n*.njsproj\n*.sln\n*.sw?\n*.local\n")'
 npx biome check --linter-enabled=false --formatter-enabled=false .
+grep -q '"\$schema"' biome.json || { echo "biome.json : \$schema manquant"; exit 1; }
 npm run format
 ```
 
@@ -2383,6 +2384,7 @@ Maintenant que tous les dossiers (web/, server/, mobile/ et shared/) ont leurs p
 
 ```bash
 npm install
+grep -q '"\$schema"' biome.json || { echo "biome.json : \$schema manquant"; exit 1; }
 npm run build:shared
 npm ls "@$(basename "$PWD" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_]/_/g')/shared" --workspaces
 ```
