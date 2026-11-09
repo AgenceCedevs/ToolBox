@@ -15,9 +15,9 @@ Un monorepo est un seul dépôt qui contient le frontend (web/), le backend (ser
 🟡 Attention
 Avant de commencer : À partir de l'étape 03, des dependence seront ajoutées aux package.json sans être installées immédiatement. Cela créera des fichiers en erreur dans l'éditeur comme tsconfig.json racine, setup/*.ts,etc.
 
-C'est normal et attendu ! À l'étape 36, un seul npm install à la racine installera TOUTES les dépendances et TOUS les problèmes disparaîtront d'un coup. Ne pas s'inquiéter des erreurs rouges avant cette étape.
+C'est normal et attendu ! installées à la racine du monorepo à l'étape 37 à la racine installera TOUTES les dépendances et TOUS les problèmes disparaîtront d'un coup. Ne pas s'inquiéter des erreurs rouges avant cette étape.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 01 - racine > Ouvrir Git bash et créer le dossier du monorepo
 🟡 Attention
 Le nom du dossier racine sert à initialiser PROJECT_NAME et le nom affiché de l'application dans les fichiers .env. Il est préférable de choisir un nom sans espaces ni caractères spéciaux, ici appStarter. Les applications lisent ces paramètres depuis leur environnement ; ils ne sont pas codés dans shared/src/constants.ts.
@@ -30,7 +30,7 @@ mkdir appStarter && cd appStarter
 code .
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 02 - racine > Initialiser npm et créer le fichier package.json
 Une fois l'éditeur ouvert, ouvrir le terminal intégré avec Ctrl+ù. Toutes les commandes suivantes sont à lancer depuis ce terminal intégré.
 
@@ -59,12 +59,14 @@ Wrote to C:\Users\Cédric\desktop\LOCAL\appStarter\package.json:
 }
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 03 - racine > Ajouter les dépendances Concurrently et Biome
 - concurrently : Exécuter plusieurs scripts npm simultanément.
 - @biomejs/biome : Linter et formateur de code unifié.
 - typescript : Compiler le package shared/ en JavaScript et déclarations TypeScript.
 - @types/node : Types TypeScript pour Node.js.
+- tsx : Exécuter les scripts TypeScript de setup/ (liveApp, update-package-name, exports, vérification).
+- dotenv : Charger le fichier .env dans les scripts de setup/.
 - script postinstall : Met à jour automatiquement le schéma Biome dans biome.json à la version installée.
 
 ▷ Ajouter ces dépendances au package.json racine (sans les installer pour l'instant).
@@ -74,12 +76,14 @@ npm pkg set devDependencies.concurrently="latest"
 npm pkg set devDependencies.@biomejs/biome="latest"
 npm pkg set devDependencies.typescript="latest"
 npm pkg set devDependencies.@types/node="latest"
+npm pkg set devDependencies.tsx="latest"
+npm pkg set devDependencies.dotenv="latest"
 npm pkg set scripts.postinstall="node -e \"const v = require('@biomejs/biome/package.json').version; const fs = require('fs'); const c = JSON.parse(fs.readFileSync('biome.json')); c['\$schema'] = 'https://biomejs.dev/schemas/' + v + '/schema.json'; fs.writeFileSync('biome.json', JSON.stringify(c, null, 2))\""
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 04 - racine > Créer le fichier de configuration biome.json
-Ce fichier configure Biome pour ignorer node_modules, formater avec des tabulations et des guillemets doubles, et activer les règles recommandées. Sans lui, Biome scanne node_modules et peut se bloquer.
+Ce fichier configure Biome pour ignorer node_modules, le README et les fichiers générés par la vérification du monorepo (rapports `.md` et feuille de style), formater avec des tabulations et des guillemets doubles, et activer les règles recommandées. Sans lui, Biome scanne node_modules et peut se bloquer.
 
 ▷ Créer le fichier biome.json à la racine avec la configuration nécessaire.
 
@@ -89,7 +93,7 @@ const v = require('@biomejs/biome/package.json').version;
 require('fs').writeFileSync('biome.json', JSON.stringify({
   '\$schema': 'https://biomejs.dev/schemas/' + v + '/schema.json',
   vcs: { enabled: true, clientKind: 'git', useIgnoreFile: true },
-  files: { ignoreUnknown: false, includes: ['**', '!**/node_modules'] },
+  files: { ignoreUnknown: false, includes: ['**', '!**/node_modules', '!README.md', '!setup/verify_monorepo/verify-report-*.md', '!setup/verify_monorepo/report.css'] },
   formatter: { enabled: true, indentStyle: 'tab', lineWidth: 320 },
   linter: { enabled: true, rules: { preset: 'recommended' } },
   overrides: [
@@ -108,9 +112,9 @@ require('fs').writeFileSync('biome.json', JSON.stringify({
 "
 ```
 
-L’`overrides`désactive la règle `noUnusedVariables` uniquement pour le fichier w`web/src/vite-env.d.ts`. Dans ce fichier, on déclare des interfaces globales (par exemple ImportMetaEnv) qui ne sont jamais importées ni appelées dans ton code : c’est TypeScript lui-même qui les utilise pour typer import.meta.env. Biome les croirait donc inutilisées à tort. Partout ailleurs dans le monorepo, la règle reste active.
+Le premier `overrides` désactive la règle `noUnusedVariables` uniquement pour le fichier `web/src/vite-env.d.ts`. Dans ce fichier, on déclare des interfaces globales (par exemple ImportMetaEnv) qui ne sont jamais importées ni appelées dans ton code : c’est TypeScript lui-même qui les utilise pour typer import.meta.env. Biome les croirait donc inutilisées à tort. Partout ailleurs dans le monorepo, la règle reste active. Le second `overrides` désactive la règle `noSvgWithoutTitle` pour les SVG de `web/public` et `web/src/assets` : ce sont des icônes ou illustrations décoratives, pour lesquelles une balise `<title>` n'est pas nécessaire.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 05 - racine > Créer tsconfig.json
 Les scripts dans setup/ sont en TypeScript et ont besoin d'un tsconfig.json racine.
 
@@ -130,7 +134,7 @@ node -e "require('fs').writeFileSync('tsconfig.json', JSON.stringify({
 }, null, 2))"
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 06 - racine > Créer les dossiers web/, mobile/ et shared/
 
 ▷ Créer les dossiers web/, mobile/ et shared/, puis initialiser les packages npm de ces workspaces. Le package partagé produit une version ESM pour Vite et une version CommonJS pour le serveur.
@@ -165,7 +169,7 @@ for (const [format, type] of [["esm", "module"], ["cjs", "commonjs"]]) {
 }
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 07 - racine > Déclarer les workspaces npm
 Déclarer les workspaces npm permet à npm de relier automatiquement le package shared/ aux applications locales, sans publier ni télécharger ce package depuis le registre npm.
 
@@ -178,7 +182,7 @@ Vérifier que la modification a bien été appliquée en ouvrant package.json : 
 node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));pkg.workspaces=['web','server','mobile','shared'];fs.writeFileSync('package.json',JSON.stringify(pkg,null,2));"
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 08 - racine > Ajouter les scripts npm
 Les scripts de développement compilent d'abord shared/, puis lancent les applications. Les scripts lint, fix et format gèrent la qualité du code avec Biome.
 
@@ -207,7 +211,7 @@ npm pkg set scripts.fix="biome lint --write . && biome format --write ."
 npm pkg set scripts.format="biome format --write ."
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 09 - racine > Créer settings.json pour VSCode
 Configurer l'éditeur pour appliquer Biome automatiquement à chaque sauvegarde.
 
@@ -251,7 +255,7 @@ fs.writeFileSync('.vscode/settings.json', JSON.stringify({
 
 `css.validate` active la validation CSS intégrée à VS Code. `css.lint.vendorPrefix: ignore` masque les avertissements concernant les préfixes propriétaires (`-webkit-`, `-moz-`, etc.). Le chemin de l'exécutable Biome est choisi automatiquement selon le système d'exploitation et l'architecture ; ne pas le remplacer par un chemin Windows fixe.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 10 - racine > Configurer package.json en ES modules
 Les scripts dans setup/ utilisent la syntaxe import ES modules.
 
@@ -270,7 +274,7 @@ npm pkg delete license
 npm pkg delete scripts.test
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 11 - racine > Créer .gitignore, .env.sample et .env
 - .gitignore indique à Git quels fichiers ne jamais envoyer sur GitHub.
 - .env.sample est un modèle de fichier .env ne contenant aucune donnée sensible. Les identifiants et mots de passe, comme la base de données ou la configuration locale, doivent être définis uniquement dans les fichiers .env locaux.
@@ -293,7 +297,7 @@ Oublier de renseigner les vraies valeurs dans les fichiers .env locaux est probl
 🟡 Attention
 Si `.env` existe déjà, la dernière commande s'arrête avec l'erreur `EEXIST`. C'est voulu : elle protège vos vraies valeurs au lieu de les écraser.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 12 - racine > Créer le fichier docker-compose.yml
 Le fichier docker-compose.yml contient des guillemets doubles qui ne peuvent pas être échappés proprement dans node -e sur le terminal.
 
@@ -303,7 +307,7 @@ Le fichier docker-compose.yml contient des guillemets doubles qui ne peuvent pas
 touch docker-compose.yml
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 13 - racine > Ajouter le contenu à docker-compose.yml
 ▷ Ouvrir le fichier docker-compose.yml et coller le contenu suivant.
 
@@ -358,7 +362,7 @@ docker compose down
 🟡 Attention
 Ne pas ajouter `-v` à `docker compose down` pour un arrêt normal : cette option supprime aussi le volume PostgreSQL et donc les données de la base.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 14 - setup > Créer les dossiers et fichiers setup
 Les fichiers .ts sont créés avec touch et non via node -e.
 
@@ -377,9 +381,9 @@ touch setup/exports_writings/export_writings_noCommit.ts
 touch setup/exports_writings/export_writings_gitDiff.ts
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 15 - shared > Remplir constants.ts
-Ce fichier centralise uniquement les valeurs stables de l'application utilisées par web/, server/ et mobile/. Les paramètres qui peuvent varier selon le projet, l'environnement ou la plateforme (nom de l'application, URL d'API, ports, secrets, identifiants) doivent être lus depuis les variables d'environnement de chaque application, pas ajoutés ici. Le package partagé est compilé à l'étape 36, et ses exports sont accessibles avec `@appstarter/shared`.
+Ce fichier centralise uniquement les valeurs stables de l'application utilisées par web/, server/ et mobile/. Les paramètres qui peuvent varier selon le projet, l'environnement ou la plateforme (nom de l'application, URL d'API, ports, secrets, identifiants) doivent être lus depuis les variables d'environnement de chaque application, pas ajoutés ici. Le package partagé est compilé à l'étape 37, et ses exports sont accessibles avec `@appstarter/shared`.
 
 ▷ Ouvrir le fichier shared/src/constants.ts et coller le contenu suivant.
 
@@ -407,7 +411,7 @@ export const constants = {
 🔵 Info
 Pour utiliser ces constantes stables dans un fichier TypeScript ou TSX d'une application, importer le package partagé : `import { constants } from "@appstarter/shared";`. Les valeurs sont exposées par shared/src/index.ts. Dans web/, lire par exemple le nom et l'URL de l'API depuis `import.meta.env.VITE_APP_NAME` et `import.meta.env.VITE_API_URL`. Dans server/, lire le nom et le port depuis `process.env.APP_NAME` et `process.env.PORT`. Dans l'application mobile Expo, lire le nom et l'URL de l'API depuis `process.env.EXPO_PUBLIC_APP_NAME` et `process.env.EXPO_PUBLIC_API_URL`. Expo expose les variables préfixées par `EXPO_PUBLIC_` au code client : ne jamais y placer de secret. Ne pas lire les variables d'environnement dans shared/ : chaque application a son propre mécanisme et sa propre configuration. setup/ reste réservé aux scripts d'initialisation.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 16 - setup > Remplir liveApp.ts
 Ce script automatise le démarrage de l'environnement local : il vérifie Docker, attend la base de données et lance les serveurs de développement. Les délais d'attente peuvent être ajustés avec `DOCKER_WAIT_ATTEMPTS`, `DOCKER_WAIT_INTERVAL_MS`, `DB_WAIT_ATTEMPTS` et `DB_WAIT_INTERVAL_MS`.
 
@@ -417,7 +421,7 @@ La création de ce fichier ne le lance pas. Exécuter `npx tsx setup/liveApp.ts`
 ▷ Ouvrir le fichier setup/liveApp.ts et coller le contenu suivant.
 
 ```typescript
-// npx tsx setup/liveApp.ts
+// npx tsx setup/liveApp.ts [--reset-db] [--free-ports] [--repair-wsl] [--reset-wsl]
 import "dotenv/config";
 import { type ExecSyncOptions, execSync, spawn } from "node:child_process";
 
@@ -425,28 +429,53 @@ import { type ExecSyncOptions, execSync, spawn } from "node:child_process";
 // Configuration
 // ---------------------------------------------------------
 const CONFIG = {
+	dockerPath: process.env.DOCKER_DESKTOP_PATH || "C:/Program Files/Docker/Docker/Docker Desktop.exe",
 	dockerWaitAttempts: Number(process.env.DOCKER_WAIT_ATTEMPTS) || 40,
 	dockerWaitInterval: Number(process.env.DOCKER_WAIT_INTERVAL_MS) || 3000,
 	dbWaitAttempts: Number(process.env.DB_WAIT_ATTEMPTS) || 40,
 	dbWaitInterval: Number(process.env.DB_WAIT_INTERVAL_MS) || 2500,
 	dbInitScript: "npm run db:init",
+	criticalPorts: [5432, 5050],
+	// Services Windows connus pouvant occuper les ports (uniquement avec --free-ports)
+	knownWindowsServices: ["postgresql-x64-16", "postgresql-x64-15", "pgadmin4"],
+	// Processus que --free-ports a le droit de tuer (jamais Docker lui-même)
+	killableProcesses: ["postgres.exe", "pgadmin4.exe"],
 } as const;
 
 const DEBUG = process.env.DEBUG === "1";
 
 // ---------------------------------------------------------
+// Options de la ligne de commande
+// ---------------------------------------------------------
+const ARGS = new Set(process.argv.slice(2));
+const OPTIONS = {
+	/** Supprime aussi les volumes du projet (base de données vidée) */
+	resetDb: ARGS.has("--reset-db"),
+	/** Arrête les services/processus PostgreSQL Windows qui bloquent les ports */
+	freePorts: ARGS.has("--free-ports"),
+	/** Autorise la réparation WSL (destructive) si Docker ne démarre pas */
+	repairWsl: ARGS.has("--repair-wsl"),
+	/** Ferme Docker Desktop puis fait un wsl --shutdown avant le build */
+	resetWsl: ARGS.has("--reset-wsl"),
+} as const;
+
+// ---------------------------------------------------------
 // Processus enfants à nettoyer au CTRL+C
 // ---------------------------------------------------------
-const childProcesses: (ReturnType<typeof spawn> | null)[] = [];
+const childProcesses: ReturnType<typeof spawn>[] = [];
 
-const cleanExit = () => {
-	console.log("\n\n🔴 Interruption reçue - arrêt propre des processus...");
+const cleanExit = (): void => {
+	console.log("\n\n🔴 Interruption reçue — arrêt propre des processus...");
 	for (const child of childProcesses) {
-		if (child && !child.killed) {
+		if (child.pid && !child.killed) {
 			try {
-				child.kill("SIGTERM");
+				// /T : tue aussi l'arbre de processus lancé via cmd.exe
+				execSync(`taskkill /PID ${child.pid} /T /F`, {
+					stdio: "ignore",
+					shell: "cmd.exe",
+				});
 			} catch {
-
+				// Processus déjà terminé
 			}
 		}
 	}
@@ -461,7 +490,7 @@ process.on("SIGTERM", cleanExit);
 // ---------------------------------------------------------
 type LogLevel = "info" | "success" | "warn" | "error" | "debug";
 
-const COLORS = {
+const COLORS: Record<LogLevel | "reset", string> = {
 	info: "\x1b[34m",
 	success: "\x1b[32m",
 	warn: "\x1b[33m",
@@ -470,20 +499,34 @@ const COLORS = {
 	reset: "\x1b[0m",
 };
 
-function log(message: string, level: LogLevel = "info") {
+function log(message: string, level: LogLevel = "info"): void {
 	if (level === "debug" && !DEBUG) return;
 	console.log(`${COLORS[level]}${message}${COLORS.reset}`);
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+function step(label: string, title: string): void {
+	console.log("══════════════════════════════════════════════════");
+	console.log(`Étape ${label}`);
+	console.log(`🔵 ${title}`);
+}
+
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 function run(cmd: string, opts: ExecSyncOptions = {}): void {
 	log(`▶ ${cmd}`, "debug");
-	execSync(cmd, {
-		stdio: "inherit",
-		shell: "cmd.exe",
-		...opts,
-	});
+	try {
+		execSync(cmd, {
+			stdio: "inherit",
+			shell: "cmd.exe",
+			...opts,
+		});
+	} catch (err) {
+		const { status, signal } = err as {
+			status?: number | null;
+			signal?: string | null;
+		};
+		throw new Error(`Commande échouée : ${cmd} (code ${status ?? "aucun"}, signal ${signal ?? "aucun"})`);
+	}
 }
 
 function tryRun(cmd: string, opts: ExecSyncOptions = {}): boolean {
@@ -500,68 +543,235 @@ function tryRun(cmd: string, opts: ExecSyncOptions = {}): boolean {
 	}
 }
 
-// ---------------------------------------------------------
-// Étapes du Pipeline (Fiabilité renforcée)
-// ---------------------------------------------------------
-
-async function preserveOtherContainers(): Promise<void> {
-	console.log("══════════════════════════════════════════════════");
-	console.log("Étape 1");
-	log("🔵 Aucun nettoyage global Docker n'est effectué.", "info");
-	log("🟢 Les autres conteneurs et volumes sont préservés.", "success");
+function capture(cmd: string): string {
+	try {
+		log(`▶ ${cmd}`, "debug");
+		return execSync(cmd, {
+			encoding: "utf8",
+			shell: "cmd.exe",
+			stdio: ["ignore", "pipe", "ignore"],
+		});
+	} catch {
+		return "";
+	}
 }
 
-async function checkDockerPrerequisites(): Promise<void> {
-	console.log("══════════════════════════════════════════════════");
-	console.log("Étape 2");
-	console.log("🔵 Vérification de Docker Desktop...");
-	log("🟡 Si Docker n'est pas actif, démarrez-le manuellement puis relancez le launcher.", "warn");
+// ---------------------------------------------------------
+// Docker
+// ---------------------------------------------------------
+const isDockerUp = (): boolean => tryRun("docker version");
+
+function startDockerDesktop(): void {
+	log("🔵 Démarrage de Docker Desktop...", "info");
+	tryRun(`start "" "${CONFIG.dockerPath}"`);
 }
 
-async function waitForDocker(): Promise<void> {
-	console.log("══════════════════════════════════════════════════");
-	console.log("Étape 3");
-	console.log("🔵 Vérification de l'état de Docker...");
-
+async function waitUntilDockerUp(): Promise<boolean> {
 	for (let i = 0; i < CONFIG.dockerWaitAttempts; i++) {
-		try {
-			execSync("docker version", { stdio: "ignore", shell: "cmd.exe" });
-			log("🟢 Docker est opérationnel !", "success");
-			return;
-		} catch {
-			log(
-				`🟡 Docker en attente (${i + 1}/${CONFIG.dockerWaitAttempts})`,
-				"warn",
-			);
-			await sleep(CONFIG.dockerWaitInterval);
+		if (isDockerUp()) return true;
+		log(`🟡 Docker en attente (${i + 1}/${CONFIG.dockerWaitAttempts})`, "warn");
+		await sleep(CONFIG.dockerWaitInterval);
+	}
+	return false;
+}
+
+async function repairWSL(): Promise<void> {
+	log("🔴 Réparation forcée du moteur WSL (destructive)...", "error");
+	tryRun("wsl --shutdown");
+	await sleep(2000);
+	tryRun("wsl --unregister docker-desktop");
+	tryRun("wsl --unregister docker-desktop-data");
+	await sleep(2000);
+	tryRun("wsl --update");
+	log("🔵 WSL a été mis à jour et réinitialisé", "info");
+	await sleep(3000);
+}
+
+// ---------------------------------------------------------
+// Ports
+// ---------------------------------------------------------
+type PortOwner = { port: number; pid: number; name: string };
+
+function getProcessName(pid: number): string {
+	const out = capture(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`);
+	const match = out.match(/^"([^"]+)"/m);
+	return match?.[1] ?? "inconnu";
+}
+
+function getPortOwners(port: number): PortOwner[] {
+	const stdout = capture(`netstat -ano | findstr :${port}`);
+	const pids = new Set<number>();
+
+	for (const line of stdout.split(/\r?\n/)) {
+		const cols = line.trim().split(/\s+/);
+		const local = cols[1];
+		const state = cols[3];
+		const pid = Number(cols[4]);
+		if (state !== "LISTENING" || !local?.endsWith(`:${port}`)) continue;
+		if (Number.isNaN(pid) || pid <= 0) continue;
+		pids.add(pid);
+	}
+
+	return [...pids].map((pid) => ({ port, pid, name: getProcessName(pid) }));
+}
+
+function findPortConflicts(): PortOwner[] {
+	return CONFIG.criticalPorts.flatMap((port) => getPortOwners(port));
+}
+
+type DockerContainer = { id: string; name: string };
+
+function getDockerContainersOnPort(port: number): DockerContainer[] {
+	const out = capture(`docker ps --filter "publish=${port}" --format "{{.ID}}|{{.Names}}"`);
+	return out
+		.split(/\r?\n/)
+		.map((line) => line.trim())
+		.filter((line) => line.length > 0)
+		.map((line) => {
+			const [id = "", name = ""] = line.split("|");
+			return { id, name };
+		});
+}
+
+// ---------------------------------------------------------
+// Étapes du Pipeline
+// ---------------------------------------------------------
+async function ensureDocker(): Promise<void> {
+	step("3/8 - 37.5%", "Vérification de Docker Desktop...");
+
+	if (isDockerUp()) {
+		log("🟢 Docker est déjà opérationnel !", "success");
+		return;
+	}
+
+	startDockerDesktop();
+	if (await waitUntilDockerUp()) {
+		log("🟢 Docker est opérationnel !", "success");
+		return;
+	}
+
+	if (!OPTIONS.repairWsl) {
+		throw new Error(`Docker reste indisponible après ${CONFIG.dockerWaitAttempts} tentatives. Vérifiez Docker Desktop, ou relancez avec --repair-wsl (destructif : réinitialise les distributions WSL de Docker).`);
+	}
+
+	await repairWSL();
+	startDockerDesktop();
+	if (!(await waitUntilDockerUp())) {
+		throw new Error("Échec critique : Docker ne peut pas démarrer.");
+	}
+	log("🟢 Docker est opérationnel après réparation WSL !", "success");
+}
+
+async function stopProjectContainers(): Promise<void> {
+	step("4/8 - 50%", "Arrêt des conteneurs du projet...");
+
+	if (OPTIONS.resetDb) {
+		log("🟡 --reset-db : les volumes du projet seront supprimés.", "warn");
+		tryRun("docker compose down --remove-orphans -v");
+	} else {
+		tryRun("docker compose down --remove-orphans");
+	}
+	log("🟢 Conteneurs du projet arrêtés (autres projets préservés).", "success");
+}
+
+async function stopDockerContainersOnPorts(ports: number[]): Promise<void> {
+	// docker stop = arrêt sans suppression : conteneurs et volumes restent intacts
+	for (const port of ports) {
+		for (const container of getDockerContainersOnPort(port)) {
+			log(`🟡 Port ${port} publié par le conteneur "${container.name}" (${container.id}) : arrêt...`, "warn");
+			if (tryRun(`docker stop ${container.id}`)) {
+				log(`🟢 Conteneur "${container.name}" arrêté`, "success");
+			}
 		}
 	}
-	throw new Error(
-		`Docker reste indisponible après ${CONFIG.dockerWaitAttempts} tentatives. Démarrez Docker Desktop et vérifiez la configuration Docker.`,
-	);
+}
+
+async function waitForPortsFree(): Promise<PortOwner[]> {
+	let conflicts = findPortConflicts();
+	for (let i = 0; i < 10 && conflicts.length > 0; i++) {
+		await sleep(1000);
+		conflicts = findPortConflicts();
+	}
+	return conflicts;
+}
+
+async function ensurePortsFree(): Promise<void> {
+	step("5/8 - 62.5%", `Vérification des ports ${CONFIG.criticalPorts.join(", ")}...`);
+
+	let conflicts = findPortConflicts();
+	if (conflicts.length === 0) {
+		log("🟢 Ports disponibles.", "success");
+		return;
+	}
+
+	// 1. Conteneurs Docker d'un autre projet (arrêtés automatiquement, sans perte de données)
+	await stopDockerContainersOnPorts(CONFIG.criticalPorts.slice());
+	conflicts = await waitForPortsFree();
+
+	// 2. Processus Windows locaux (PostgreSQL, pgAdmin) : uniquement avec --free-ports
+	if (conflicts.length > 0 && OPTIONS.freePorts) {
+		log("🟡 --free-ports : arrêt des services Windows bloquants...", "warn");
+
+		for (const service of CONFIG.knownWindowsServices) {
+			tryRun(`net stop ${service} /y`);
+		}
+
+		for (const owner of conflicts) {
+			if ((CONFIG.killableProcesses as readonly string[]).includes(owner.name.toLowerCase())) {
+				tryRun(`taskkill /F /T /PID ${owner.pid}`);
+				log(`🟢 ${owner.name} (PID ${owner.pid}) arrêté`, "success");
+			}
+		}
+
+		conflicts = await waitForPortsFree();
+	}
+
+	if (conflicts.length > 0) {
+		for (const c of conflicts) {
+			log(`🔴 Port ${c.port} occupé par ${c.name} (PID ${c.pid})`, "error");
+		}
+		throw new Error("Ports toujours occupés. Si c'est un PostgreSQL/pgAdmin Windows, relancez avec --free-ports. Sinon, redémarrez Docker Desktop.");
+	}
+
+	log("🟢 Ports libérés.", "success");
+}
+
+async function freeMemoryBeforeBuild(): Promise<void> {
+	step("1/8 - 12.5%", "Libération de la mémoire WSL avant le build...");
+
+	if (isDockerUp() && !OPTIONS.resetWsl) {
+		log("🟡 Docker est déjà actif : wsl --shutdown ignoré (utilisez --reset-wsl pour forcer).", "warn");
+		return;
+	}
+
+	if (OPTIONS.resetWsl) {
+		log("🟡 --reset-wsl : fermeture de Docker Desktop...", "warn");
+		tryRun('taskkill /F /T /IM "Docker Desktop.exe"');
+		tryRun("taskkill /F /T /IM com.docker.backend.exe");
+		await sleep(2000);
+	}
+
+	tryRun("wsl --shutdown");
+	await sleep(3000);
+	log("🟢 WSL arrêté, mémoire libérée.", "success");
 }
 
 async function buildProject(): Promise<void> {
-	console.log("══════════════════════════════════════════════════");
-	console.log("Étape 4");
-	console.log("🔵 Compilation des applications...");
+	step("2/8 - 25%", "Compilation des applications (avant Docker, pour limiter la RAM)...");
 	run("npm run build:shared");
 	run("npm run build -w web");
 	log("🟢 Builds terminés avec succès", "success");
 }
 
 async function startContainers(): Promise<void> {
-	console.log("══════════════════════════════════════════════════");
-	console.log("Étape 5");
-	console.log("🔵 Déploiement des conteneurs...");
+	step("6/8 - 75%", "Déploiement des conteneurs...");
 	run("docker compose up -d --build");
 	log("🟢 Services démarrés", "success");
 }
 
 async function waitForDB(): Promise<void> {
-	console.log("══════════════════════════════════════════════════");
-	console.log("Étape 6");
-	console.log("🔵 Attente de la base de données...");
+	step("7/8 - 87.5%", "Attente de la base de données...");
+
 	const PROJECT_NAME = process.env.PROJECT_NAME;
 	if (!PROJECT_NAME) {
 		throw new Error("PROJECT_NAME manquant dans le fichier .env racine.");
@@ -571,26 +781,18 @@ async function waitForDB(): Promise<void> {
 	for (let i = 0; i < CONFIG.dbWaitAttempts; i++) {
 		if (tryRun(`docker exec ${container} pg_isready`)) {
 			log("🟢 PostgreSQL est prêt à accepter les connexions !", "success");
-
 			log("🔵 Stabilisation de la base de données...", "info");
 			await sleep(3000);
 			return;
 		}
-		log(
-			`🟡 Base de données indisponible (${i + 1}/${CONFIG.dbWaitAttempts})`,
-			"warn",
-		);
+		log(`🟡 Base de données indisponible (${i + 1}/${CONFIG.dbWaitAttempts})`, "warn");
 		await sleep(CONFIG.dbWaitInterval);
 	}
-	throw new Error(
-		`PostgreSQL ne répond pas après ${CONFIG.dbWaitAttempts} tentatives. Vérifiez le conteneur ${container} et ses variables d'environnement.`,
-	);
+	throw new Error(`PostgreSQL ne répond pas après ${CONFIG.dbWaitAttempts} tentatives. Vérifiez le conteneur ${container} et ses variables d'environnement.`);
 }
 
 async function startDev(): Promise<void> {
-	console.log("══════════════════════════════════════════════════");
-	console.log("Étape 7");
-	console.log("🔵 Lancement de l'environnement Dev");
+	step("8/8 - 100%", "Lancement de l'environnement Dev");
 
 	const spawnService = (name: string, cmd: string) => {
 		log(`\n🔵 [${name}] Démarrage...`, "info");
@@ -608,24 +810,24 @@ async function startDev(): Promise<void> {
 	await new Promise<void>((resolve, reject) => {
 		server.on("exit", (code) => {
 			if (code === 0 || code === null) resolve();
-			else
-				reject(new Error(`Le serveur s'est arrêté brusquement (code ${code})`));
+			else reject(new Error(`Le serveur s'est arrêté brusquement (code ${code})`));
 		});
 	});
 }
 
 async function main(): Promise<void> {
 	console.log("══════════════════════════════════════════════════");
-	console.log("🔵 LAUNCHER - liveApp");
+	console.log("🔵 LAUNCHER — liveApp");
 	console.log("   Simulator live Local");
 
 	const start = Date.now();
 
 	try {
-		await preserveOtherContainers();
-		await checkDockerPrerequisites();
-		await waitForDocker();
+		await freeMemoryBeforeBuild();
 		await buildProject();
+		await ensureDocker();
+		await stopProjectContainers();
+		await ensurePortsFree();
 		await startContainers();
 		await waitForDB();
 
@@ -637,17 +839,15 @@ async function main(): Promise<void> {
 
 		await startDev();
 	} catch (err) {
-		log(
-			`\n🔴 ERREUR PIPELINE : ${err instanceof Error ? err.message : err}`,
-			"error",
-		);
+		log(`\n🔴 ERREUR PIPELINE : ${err instanceof Error ? err.message : String(err)}`, "error");
 		process.exit(1);
 	}
 }
+
 main();
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 17 - setup > Remplir update-package-name.ts
 Ce script lit le nom du dossier racine, remplace les noms d'application provisoires dans les fichiers .env et les valeurs provisoires de base de données (POSTGRES_DB et PGDATABASE), puis génère un JWT_SECRET aléatoire et sécurisé pour le serveur. Il ne modifie pas shared/src/constants.ts : les noms et URL varient selon le projet et l'environnement. Le script vérifie d'abord que tous les fichiers requis existent et s'arrête clairement si l'un d'eux manque.
 
@@ -706,6 +906,34 @@ function generateJWTSecret(): string {
 	return crypto.randomBytes(32).toString("hex");
 }
 
+function updateHtmlTitle(htmlPath: string): void {
+	if (!fs.existsSync(htmlPath)) {
+		throw new Error(`Fichier requis introuvable : ${path.relative(process.cwd(), htmlPath)}`);
+	}
+	const relativePath = path.relative(process.cwd(), htmlPath).replace(/\\/g, "/");
+	const original = fs.readFileSync(htmlPath, "utf8");
+	const escapedAppName = appName.replace(/[&<>"']/g, (character) => {
+		const entities: Record<string, string> = {
+			"&": "&amp;",
+			"<": "&lt;",
+			">": "&gt;",
+			'"': "&quot;",
+			"'": "&#39;",
+		};
+		return entities[character] ?? character;
+	});
+	const updated = original.replace(/(<title>)[\s\S]*?(<\/title>)/i, (_match, openingTag: string, closingTag: string) => `${openingTag}${escapedAppName}${closingTag}`);
+	if (updated === original) {
+		if (!/<title>[\s\S]*?<\/title>/i.test(original)) {
+			throw new Error(`Balise <title> introuvable dans ${relativePath}`);
+		}
+		console.log(`🔵 ${relativePath} - titre déjà à jour`);
+		return;
+	}
+	fs.writeFileSync(htmlPath, updated);
+	console.log(`🟢 Titre de ${relativePath} défini sur "${appName}"`);
+}
+
 function updateEnv(envPath: string): void {
 	if (!fs.existsSync(envPath)) {
 		throw new Error(`Fichier requis introuvable : ${path.relative(process.cwd(), envPath)}`);
@@ -756,6 +984,7 @@ updateEnv(path.resolve("server/.env"));
 updateEnv(path.resolve("web/.env"));
 updateEnv(path.resolve("mobile/.env"));
 updateEnv(path.resolve(".env"));
+updateHtmlTitle(path.resolve("web/index.html"));
 
 if (sharedScope === TEMPLATE_SCOPE) {
 	console.log(`🔵 Scope npm ${sharedScope} - aucun renommage nécessaire`);
@@ -768,9 +997,10 @@ console.log(`
 🟢 CONFIGURATION TERMINÉE
 =========================
 `);
+
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 18 - setup > exports_writings > Remplir export_writings_all.ts
 Ce script exporte tout le contenu du monorepo en un seul fichier Markdown. Utile pour collaborer avec d'autres développeurs ou donner du contexte à une IA en une seule opération.
 
@@ -882,13 +1112,13 @@ try {
 		const raw = fs.readFileSync(file);
 
 		if (isBinary(raw)) {
-			output += `\n<!-- ------------------------------------ -->
+			output += `\n<!-- ==================================== -->
 # \`${rel}\`\n🟡 **Fichier ignoré (binaire)**\n`;
 			skippedCount++;
 			continue;
 		}
 
-		output += `\n<!-- ------------------------------------ -->
+		output += `\n<!-- ==================================== -->
 # \`${rel}\`\n\`\`\`${detectLanguage(file)}\n${raw.toString("utf8")}\n\`\`\`\n`;
 		processedCount++;
 	}
@@ -899,9 +1129,10 @@ try {
 } catch (error) {
 	console.error(`\n🔴 ERREUR :`, (error as Error).message);
 }
+
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 19 - setup > exports_writings > Remplir export_writings_gitDiff.ts
 Ce script exporte le git diff brut, les lignes exactes ajoutées et supprimées depuis le dernier commit.
 
@@ -932,7 +1163,7 @@ exec("git diff", (err: Error | null, stdout: string) => {
 });
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 20 - setup > exports_writings > Remplir export_writings_noCommit.ts
 Ce script exporte uniquement les fichiers modifiés ou non suivis par Git.
 
@@ -964,13 +1195,13 @@ try {
 
 	let output = "## FICHIERS À MODIFIER\n";
 	if (modified.length > 0) {
-		for (const f of modified) { output += `\n<!-- ------------------------------------ -->
+		for (const f of modified) { output += `\n<!-- ==================================== -->
 # \`${f}\`\n\`\`\`${detectLanguage(f)}\n${fs.readFileSync(f, "utf8")}\n\`\`\`\n`; }
 	} else { output += "\n_Aucun fichier modifié._\n"; }
 
 	output += "\n## NOUVEAUX FICHIERS\n";
 	if (untracked.length > 0) {
-		for (const f of untracked) { output += `\n<!-- ------------------------------------ -->
+		for (const f of untracked) { output += `\n<!-- ==================================== -->
 # \`${f}\`\n\`\`\`${detectLanguage(f)}\n${fs.readFileSync(f, "utf8")}\n\`\`\`\n`; }
 	} else { output += "\n_Aucun fichier non suivi._\n"; }
 
@@ -988,7 +1219,7 @@ Ces trois scripts s'utilisent depuis la racine du monorepo avec npx tsx.
 - npx tsx setup/exports_writings/export_writings_noCommit.ts - fichiers non commités.
 - npx tsx setup/exports_writings/export_writings_gitDiff.ts - diff brut.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 21 - setup > resources > Remplir resources.md
 Ce dossier contient les fichiers annexes au monorepo qui ne font pas directement partie du code source.
 
@@ -1021,7 +1252,7 @@ Avertissement ou information non critique.
 Erreurs de syntaxe, rejet de connexion, crash système.
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 22 - setup > verify_monorepo > Remplir verify_monorepo.ts
 Ce script de vérification teste l'intégrité du monorepo. Il contrôle la structure des dossiers, les dépendances npm, Docker, PostgreSQL, l'API, le build web et Git, puis génère un rapport Markdown. Il ne se lance pas automatiquement et n'est pas encore exécutable à cette étape : lancez-le après avoir terminé l'application et satisfait les prérequis ci-dessous.
 
@@ -1046,296 +1277,702 @@ const colors = { reset: "\x1b[0m", bright: "\x1b[1m", dim: "\x1b[2m", red: "\x1b
 const emoji = { check: "✓", cross: "✗", warning: "⚠", info: "ℹ", rocket: "🚀", docker: "🐳", database: "🗄", api: "🔌", frontend: "🎨", gear: "⚙", folder: "📁", chart: "📊", boom: "💥", party: "🎉", sad: "😞", stack: "📚" };
 
 const PROJECT_NAME = (() => {
-  const fromEnv = getEnv("PROJECT_NAME");
-  if (fromEnv) return fromEnv;
-  try {
-    const pkg = JSON.parse(readFileSync("package.json", "utf-8"));
-    return pkg.name as string;
-  } catch {
-    return "app";
-  }
+	const fromEnv = getEnv("PROJECT_NAME");
+	if (fromEnv) return fromEnv;
+	try {
+		const pkg = JSON.parse(readFileSync("package.json", "utf-8"));
+		return pkg.name as string;
+	} catch {
+		return "app";
+	}
 })();
 
-let totalPass = 0, totalFail = 0, totalIgnored = 0, totalGenerated = 0, reportMarkdown = "", currentSectionTests: Array<{ name: string; status: "✓" | "✗" | "⚠" | "⬡" }> = [], currentSectionTitle = "";
+let totalPass = 0,
+	totalFail = 0,
+	totalIgnored = 0,
+	totalGenerated = 0,
+	reportMarkdown = "",
+	currentSectionTests: Array<{ name: string; status: "✓" | "✗" | "⚠" | "⬡" }> = [],
+	currentSectionTitle = "";
 const allFailedTests: Array<{ section: string; name: string }> = [];
 const timestamp = new Date().toLocaleString("fr-FR");
 const projectStack: Record<string, unknown> = {};
 
 const log = (message: string, color: keyof typeof colors = "reset"): void => console.log(`${colors[color]}${message}${colors.reset}`);
-const logTitle = (title: string): void => { console.log(""); log(`╔${"═".repeat(title.length + 2)}╗`, "blue"); log(`║ ${title} ║`, "bright"); log(`╚${"═".repeat(title.length + 2)}╝`, "blue"); console.log(""); reportMarkdown += `# ${title}\n\n**Heure du test :** ${timestamp}\n\n`; };
-const logSection = (title: string, icon: keyof typeof emoji = "gear"): void => { if (currentSectionTitle && currentSectionTests.length > 0) addSectionToMarkdown(); console.log(""); log(`${emoji[icon]}  ${title}`, "cyan"); log("-".repeat(50), "dim"); currentSectionTitle = title; currentSectionTests = []; reportMarkdown += `## ${emoji[icon]}  ${title}\n\n`; };
-const addSectionToMarkdown = (): void => { if (currentSectionTests.length === 0) return; reportMarkdown += `| Test | Statut |\n|------|--------|\n`; for (const test of currentSectionTests) { let status = ""; if (test.status === "✓") { status = `<span class="ok"><span class="dot dot-ok"></span> OK</span>`; } else if (test.status === "✗") { status = `<span class="fail"><span class="dot dot-fail"></span> FAIL</span>`; allFailedTests.push({ section: currentSectionTitle, name: test.name }); } else if (test.status === "⚠") { status = `<span class="ignored"><span class="dot dot-ignored"></span> IGNORÉ</span>`; } else if (test.status === "⬡") { status = `<span class="generated"><span class="dot dot-generated"></span> GÉNÉRÉ</span>`; } reportMarkdown += `| ${test.name} | ${status} |\n`; } reportMarkdown += `\n`; };
+const logTitle = (title: string): void => {
+	console.log("");
+	log(`╔${"═".repeat(title.length + 2)}╗`, "blue");
+	log(`║ ${title} ║`, "bright");
+	log(`╚${"═".repeat(title.length + 2)}╝`, "blue");
+	console.log("");
+	reportMarkdown += `# ${title}\n\n**Heure du test :** ${timestamp}\n\n`;
+};
+const logSection = (title: string, icon: keyof typeof emoji = "gear"): void => {
+	if (currentSectionTitle && currentSectionTests.length > 0) addSectionToMarkdown();
+	console.log("");
+	log(`${emoji[icon]}  ${title}`, "cyan");
+	log("-".repeat(50), "dim");
+	currentSectionTitle = title;
+	currentSectionTests = [];
+	reportMarkdown += `## ${emoji[icon]}  ${title}\n\n`;
+};
+const addSectionToMarkdown = (): void => {
+	if (currentSectionTests.length === 0) return;
+	reportMarkdown += `| Test | Statut |\n|------|--------|\n`;
+	for (const test of currentSectionTests) {
+		let status = "";
+		if (test.status === "✓") {
+			status = `<span class="ok"><span class="dot dot-ok"></span> OK</span>`;
+		} else if (test.status === "✗") {
+			status = `<span class="fail"><span class="dot dot-fail"></span> FAIL</span>`;
+			allFailedTests.push({ section: currentSectionTitle, name: test.name });
+		} else if (test.status === "⚠") {
+			status = `<span class="ignored"><span class="dot dot-ignored"></span> IGNORÉ</span>`;
+		} else if (test.status === "⬡") {
+			status = `<span class="generated"><span class="dot dot-generated"></span> GÉNÉRÉ</span>`;
+		}
+		reportMarkdown += `| ${test.name} | ${status} |\n`;
+	}
+	reportMarkdown += `\n`;
+	currentSectionTests = [];
+};
 
 async function test(testName: string, command: string): Promise<{ success: boolean; output: string }> {
-  process.stdout.write(`  ${testName} ... `);
-  try {
-    let output: string;
-    if (testName === "web → server (GET /api/health)") {
-      const response = await fetch(getHealthUrl(), { signal: AbortSignal.timeout(3000) });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      output = await response.text();
-    } else {
-      output = execSync(command, { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] });
-    }
+	process.stdout.write(`  ${testName} ... `);
+	try {
+		let output: string;
+		if (testName === "web → server (GET /api/health)") {
+			const response = await fetch(getHealthUrl(), { signal: AbortSignal.timeout(3000) });
+			if (!response.ok) throw new Error(`HTTP ${response.status}`);
+			output = await response.text();
+		} else {
+			output = execSync(command, { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] });
+		}
 
-    log(`${emoji.check} OK`, "green");
-    currentSectionTests.push({ name: testName, status: "✓" });
-    totalPass++;
-    return { success: true, output: output.trim() };
-  } catch (error) {
-    log(`${emoji.cross} FAIL (${error instanceof Error ? error.message : error})`, "red");
-    currentSectionTests.push({ name: testName, status: "✗" });
-    totalFail++;
-    return { success: false, output: "" };
-  }
+		log(`${emoji.check} OK`, "green");
+		currentSectionTests.push({ name: testName, status: "✓" });
+		totalPass++;
+		return { success: true, output: output.trim() };
+	} catch (error) {
+		log(`${emoji.cross} FAIL (${error instanceof Error ? error.message : error})`, "red");
+		currentSectionTests.push({ name: testName, status: "✗" });
+		totalFail++;
+		return { success: false, output: "" };
+	}
 }
 
-function testFile(filePath: string, displayPath: string = filePath): boolean { process.stdout.write(`  ${displayPath} ... `); const fullPath = resolve(filePath); if (existsSync(fullPath)) { log(`${emoji.check} OK`, "green"); currentSectionTests.push({ name: displayPath, status: "✓" }); totalPass++; return true; } log(`${emoji.cross} FAIL`, "red"); currentSectionTests.push({ name: displayPath, status: "✗" }); totalFail++; return false; }
+function testFile(filePath: string, displayPath: string = filePath): boolean {
+	process.stdout.write(`  ${displayPath} ... `);
+	const fullPath = resolve(filePath);
+	if (existsSync(fullPath)) {
+		log(`${emoji.check} OK`, "green");
+		currentSectionTests.push({ name: displayPath, status: "✓" });
+		totalPass++;
+		return true;
+	}
+	log(`${emoji.cross} FAIL`, "red");
+	currentSectionTests.push({ name: displayPath, status: "✗" });
+	totalFail++;
+	return false;
+}
 
-function markGenerated(label: string): void { process.stdout.write(`  ${label} ... `); log(`⬡ GÉNÉRÉ`, "blue"); currentSectionTests.push({ name: label, status: "⬡" }); totalGenerated++; }
+function markGenerated(label: string): void {
+	process.stdout.write(`  ${label} ... `);
+	log(`⬡ GÉNÉRÉ`, "blue");
+	currentSectionTests.push({ name: label, status: "⬡" });
+	totalGenerated++;
+}
 
-function hasFilesWithExtension(dir: string, extensions: string[]): boolean { try { const walk = (path: string): boolean => { if (!existsSync(path)) return false; const files = readdirSync(path, { withFileTypes: true }); for (const file of files) { if (["node_modules", ".git", "dist", "build"].includes(file.name)) continue; if (file.isDirectory()) { if (walk(resolve(path, file.name))) return true; } else if (extensions.some((ext) => file.name.endsWith(ext))) { return true; } } return false; }; return walk(dir); } catch { return false; } }
+function hasFilesWithExtension(dir: string, extensions: string[]): boolean {
+	try {
+		const walk = (path: string): boolean => {
+			if (!existsSync(path)) return false;
+			const files = readdirSync(path, { withFileTypes: true });
+			for (const file of files) {
+				if (["node_modules", ".git", "dist", "build"].includes(file.name)) continue;
+				if (file.isDirectory()) {
+					if (walk(resolve(path, file.name))) return true;
+				} else if (extensions.some((ext) => file.name.endsWith(ext))) {
+					return true;
+				}
+			}
+			return false;
+		};
+		return walk(dir);
+	} catch {
+		return false;
+	}
+}
 
-function extractDependencies(pkgPath: string): Record<string, string> { try { const content = readFileSync(pkgPath, "utf-8"); const pkg = JSON.parse(content); const declared = { ...pkg.dependencies, ...pkg.devDependencies }; const workspaceDir = pkgPath.replace("/package.json", ""); const resolved: Record<string, string> = {}; for (const name of Object.keys(declared)) { const localPath = `${workspaceDir}/node_modules/${name}/package.json`; const rootPath = `node_modules/${name}/package.json`; try { const modulePkg = readFileSync(existsSync(resolve(localPath)) ? localPath : rootPath, "utf-8"); resolved[name] = JSON.parse(modulePkg).version ?? declared[name]; } catch { resolved[name] = declared[name]; } } return resolved; } catch { return {}; } }
+function extractDependencies(pkgPath: string): Record<string, string> {
+	try {
+		const content = readFileSync(pkgPath, "utf-8");
+		const pkg = JSON.parse(content);
+		const declared = { ...pkg.dependencies, ...pkg.devDependencies };
+		const workspaceDir = pkgPath.replace("/package.json", "");
+		const resolved: Record<string, string> = {};
+		for (const name of Object.keys(declared)) {
+			const localPath = `${workspaceDir}/node_modules/${name}/package.json`;
+			const rootPath = `node_modules/${name}/package.json`;
+			try {
+				const modulePkg = readFileSync(existsSync(resolve(localPath)) ? localPath : rootPath, "utf-8");
+				resolved[name] = JSON.parse(modulePkg).version ?? declared[name];
+			} catch {
+				resolved[name] = declared[name];
+			}
+		}
+		return resolved;
+	} catch {
+		return {};
+	}
+}
 
-function buildProjectTree(dir: string, prefix = ""): string { const ignored = ["node_modules", ".git", "dist", "build"]; let result = ""; try { const entries = readdirSync(dir, { withFileTypes: true }); const filtered = entries.filter((e) => !ignored.includes(e.name)); filtered.forEach((entry, index) => { const isLast = index === filtered.length - 1; const connector = isLast ? "└── " : "├── "; const childPrefix = isLast ? "    " : "│   "; result += `${prefix}${connector}${entry.name}\n`; if (entry.isDirectory()) { result += buildProjectTree(resolve(dir, entry.name), prefix + childPrefix); } }); } catch {} return result; }
+function buildProjectTree(dir: string, prefix = ""): string {
+	const ignored = ["node_modules", ".git", "dist", "build"];
+	let result = "";
+	try {
+		const entries = readdirSync(dir, { withFileTypes: true });
+		const filtered = entries.filter((e) => !ignored.includes(e.name));
+		filtered.forEach((entry, index) => {
+			const isLast = index === filtered.length - 1;
+			const connector = isLast ? "└── " : "├── ";
+			const childPrefix = isLast ? "    " : "│   ";
+			result += `${prefix}${connector}${entry.name}\n`;
+			if (entry.isDirectory()) {
+				result += buildProjectTree(resolve(dir, entry.name), prefix + childPrefix);
+			}
+		});
+	} catch {}
+	return result;
+}
 
 function checkEnvValue(envPath: string, key: string, weakValues: string[], label: string): void {
-  process.stdout.write(`  ${label} ... `);
-  try {
-    const content = readFileSync(envPath, "utf-8");
-    const match = content.match(new RegExp(`^${key}=(.+)`, "m"));
-    const value = match?.[1]?.trim();
-    if (!value) {
-      log(`${emoji.cross} FAIL (valeur absente)`, "red");
-      currentSectionTests.push({ name: label, status: "✗" });
-      totalFail++;
-      return;
-    }
+	process.stdout.write(`  ${label} ... `);
+	try {
+		const content = readFileSync(envPath, "utf-8");
+		const match = content.match(new RegExp(`^${key}=(.+)`, "m"));
+		const value = match?.[1]?.trim();
+		if (!value) {
+			log(`${emoji.cross} FAIL (valeur absente)`, "red");
+			currentSectionTests.push({ name: label, status: "✗" });
+			totalFail++;
+			return;
+		}
 
-    const normalized = value.toLowerCase();
-    const weak =
-      weakValues.some((candidate) => normalized.includes(candidate.toLowerCase())) ||
-      (key === "JWT_SECRET" && value.length < 32);
-    if (weak) {
-      log(`${emoji.cross} FAIL (valeur faible ou trop courte)`, "red");
-      currentSectionTests.push({ name: label, status: "✗" });
-      totalFail++;
-      return;
-    }
+		const normalized = value.toLowerCase();
+		const weak = weakValues.some((candidate) => normalized.includes(candidate.toLowerCase())) || (key === "JWT_SECRET" && value.length < 32);
+		if (weak) {
+			log(`${emoji.cross} FAIL (valeur faible ou trop courte)`, "red");
+			currentSectionTests.push({ name: label, status: "✗" });
+			totalFail++;
+			return;
+		}
 
-    log(`${emoji.check} OK`, "green");
-    currentSectionTests.push({ name: label, status: "✓" });
-    totalPass++;
-  } catch (error) {
-    log(`${emoji.cross} FAIL (${error instanceof Error ? error.message : error})`, "red");
-    currentSectionTests.push({ name: label, status: "✗" });
-    totalFail++;
-  }
+		log(`${emoji.check} OK`, "green");
+		currentSectionTests.push({ name: label, status: "✓" });
+		totalPass++;
+	} catch (error) {
+		log(`${emoji.cross} FAIL (${error instanceof Error ? error.message : error})`, "red");
+		currentSectionTests.push({ name: label, status: "✗" });
+		totalFail++;
+	}
 }
 
-function checkScriptExists(pkgPath: string, scriptName: string): void { const label = `Script "${scriptName}" dans ${pkgPath}`; process.stdout.write(`  ${label} ... `); try { const content = readFileSync(pkgPath, "utf-8"); const pkg = JSON.parse(content); if (pkg.scripts?.[scriptName]) { log(`${emoji.check} OK`, "green"); currentSectionTests.push({ name: label, status: "✓" }); totalPass++; } else { log(`${emoji.cross} FAIL`, "red"); currentSectionTests.push({ name: label, status: "✗" }); totalFail++; } } catch { log(`${emoji.cross} FAIL`, "red"); currentSectionTests.push({ name: label, status: "✗" }); totalFail++; } }
+function checkScriptExists(pkgPath: string, scriptName: string): void {
+	const label = `Script "${scriptName}" dans ${pkgPath}`;
+	process.stdout.write(`  ${label} ... `);
+	try {
+		const content = readFileSync(pkgPath, "utf-8");
+		const pkg = JSON.parse(content);
+		if (pkg.scripts?.[scriptName]) {
+			log(`${emoji.check} OK`, "green");
+			currentSectionTests.push({ name: label, status: "✓" });
+			totalPass++;
+		} else {
+			log(`${emoji.cross} FAIL`, "red");
+			currentSectionTests.push({ name: label, status: "✗" });
+			totalFail++;
+		}
+	} catch {
+		log(`${emoji.cross} FAIL`, "red");
+		currentSectionTests.push({ name: label, status: "✗" });
+		totalFail++;
+	}
+}
 
-async function verifyProject(): Promise<void> { logSection("INFORMATION DU PROJET", "info"); try { const pkgContent = readFileSync("package.json", "utf-8"); const pkg = JSON.parse(pkgContent); projectStack.PROJECT_NAME = pkg.name; projectStack.projectVersion = pkg.version; projectStack.projectDescription = pkg.description; process.stdout.write(`  Nom du projet : ${pkg.name} ... `); log(`${emoji.check} OK`, "green"); currentSectionTests.push({ name: `Nom du projet : ${pkg.name}`, status: "✓" }); totalPass++; process.stdout.write(`  Version : ${pkg.version} ... `); log(`${emoji.check} OK`, "green"); currentSectionTests.push({ name: `Version : ${pkg.version}`, status: "✓" }); totalPass++; } catch { process.stdout.write(`  Lecture package.json ... `); log(`${emoji.cross} FAIL`, "red"); currentSectionTests.push({ name: "Lecture package.json", status: "✗" }); totalFail++; } }
+async function verifyProject(): Promise<void> {
+	logSection("INFORMATION DU PROJET", "info");
+	try {
+		const pkgContent = readFileSync("package.json", "utf-8");
+		const pkg = JSON.parse(pkgContent);
+		projectStack.PROJECT_NAME = pkg.name;
+		projectStack.projectVersion = pkg.version;
+		projectStack.projectDescription = pkg.description;
+		process.stdout.write(`  Nom du projet : ${pkg.name} ... `);
+		log(`${emoji.check} OK`, "green");
+		currentSectionTests.push({ name: `Nom du projet : ${pkg.name}`, status: "✓" });
+		totalPass++;
+		process.stdout.write(`  Version : ${pkg.version} ... `);
+		log(`${emoji.check} OK`, "green");
+		currentSectionTests.push({ name: `Version : ${pkg.version}`, status: "✓" });
+		totalPass++;
+	} catch {
+		process.stdout.write(`  Lecture package.json ... `);
+		log(`${emoji.cross} FAIL`, "red");
+		currentSectionTests.push({ name: "Lecture package.json", status: "✗" });
+		totalFail++;
+	}
+}
 
-async function verifyVersions(): Promise<void> { const nodeResult = await test("Node.js", "node --version"); if (nodeResult.success) projectStack.nodeVersion = nodeResult.output; const npmResult = await test("npm", "npm --version"); if (npmResult.success) projectStack.npmVersion = npmResult.output; const biomeResult = await test("Biome", "npx biome --version"); if (biomeResult.success) projectStack.biomeVersion = biomeResult.output.replace("Version: ", "").trim(); const frameworks: Record<string, string> = {}; const toCheck = [{ name: "react", path: "node_modules/react/package.json" }, { name: "react", path: "web/node_modules/react/package.json" }, { name: "express", path: "node_modules/express/package.json" }, { name: "express", path: "server/node_modules/express/package.json" }, { name: "typescript", path: "node_modules/typescript/package.json" }, { name: "vite", path: "node_modules/vite/package.json" }, { name: "vite", path: "web/node_modules/vite/package.json" }]; for (const { name, path } of toCheck) { if (!frameworks[name] && existsSync(resolve(path))) { try { const pkg = JSON.parse(readFileSync(path, "utf-8")); frameworks[name] = pkg.version; } catch {} } } projectStack.frameworkVersions = frameworks; }
+async function verifyVersions(): Promise<void> {
+	const nodeResult = await test("Node.js", "node --version");
+	if (nodeResult.success) projectStack.nodeVersion = nodeResult.output;
+	const npmResult = await test("npm", "npm --version");
+	if (npmResult.success) projectStack.npmVersion = npmResult.output;
+	const biomeResult = await test("Biome", "npx biome --version");
+	if (biomeResult.success) projectStack.biomeVersion = biomeResult.output.replace("Version: ", "").trim();
+	const frameworks: Record<string, string> = {};
+	const toCheck = [
+		{ name: "react", path: "node_modules/react/package.json" },
+		{ name: "react", path: "web/node_modules/react/package.json" },
+		{ name: "express", path: "node_modules/express/package.json" },
+		{ name: "express", path: "server/node_modules/express/package.json" },
+		{ name: "typescript", path: "node_modules/typescript/package.json" },
+		{ name: "vite", path: "node_modules/vite/package.json" },
+		{ name: "vite", path: "web/node_modules/vite/package.json" },
+	];
+	for (const { name, path } of toCheck) {
+		if (!frameworks[name] && existsSync(resolve(path))) {
+			try {
+				const pkg = JSON.parse(readFileSync(path, "utf-8"));
+				frameworks[name] = pkg.version;
+			} catch {}
+		}
+	}
+	projectStack.frameworkVersions = frameworks;
+}
 
 async function verifyDocker(): Promise<void> {
-  logSection("VÉRIFICATION DOCKER", "docker");
-  await test("Docker installé", "docker --version");
-  await test("Docker Compose", "docker compose version");
+	logSection("VÉRIFICATION DOCKER", "docker");
+	await test("Docker installé", "docker --version");
+	await test("Docker Compose", "docker compose version");
 
-  process.stdout.write("  PostgreSQL en cours d'exécution ... ");
-  try {
-    const containers = execSync('docker ps --format "{{.Names}}"', { encoding: "utf-8" });
-    if (!containers.split(/\r?\n/).some((name) => name === `${PROJECT_NAME}_db`)) {
-      throw new Error(`Conteneur ${PROJECT_NAME}_db absent ou arrêté`);
-    }
+	process.stdout.write("  PostgreSQL en cours d'exécution ... ");
+	try {
+		const containers = execSync('docker ps --format "{{.Names}}"', { encoding: "utf-8" });
+		if (!containers.split(/\r?\n/).some((name) => name === `${PROJECT_NAME}_db`)) {
+			throw new Error(`Conteneur ${PROJECT_NAME}_db absent ou arrêté`);
+		}
 
-    log(`${emoji.check} OK`, "green");
-    currentSectionTests.push({ name: "PostgreSQL en cours d'exécution", status: "✓" });
-    totalPass++;
-  } catch (error) {
-    log(`${emoji.cross} FAIL (${error instanceof Error ? error.message : error})`, "red");
-    currentSectionTests.push({ name: "PostgreSQL en cours d'exécution", status: "✗" });
-    totalFail++;
-  }
+		log(`${emoji.check} OK`, "green");
+		currentSectionTests.push({ name: "PostgreSQL en cours d'exécution", status: "✓" });
+		totalPass++;
+	} catch (error) {
+		log(`${emoji.cross} FAIL (${error instanceof Error ? error.message : error})`, "red");
+		currentSectionTests.push({ name: "PostgreSQL en cours d'exécution", status: "✗" });
+		totalFail++;
+	}
 }
 
-async function verifyDatabase(): Promise<void> { logSection("VÉRIFICATION BASE DE DONNÉES", "database"); await test("Connexion à PostgreSQL", `docker exec ${PROJECT_NAME}_db psql -U ${POSTGRES_USER} -d ${PGDATABASE} -c "SELECT 1"`);
-	await test("Table 'users' existe", `docker exec ${PROJECT_NAME}_db psql -U ${POSTGRES_USER} -d ${PGDATABASE} -c "SELECT 1 FROM users LIMIT 1"`); }
+async function verifyDatabase(): Promise<void> {
+	logSection("VÉRIFICATION BASE DE DONNÉES", "database");
+	await test("Connexion à PostgreSQL", `docker exec ${PROJECT_NAME}_db psql -U ${POSTGRES_USER} -d ${PGDATABASE} -c "SELECT 1"`);
+	await test("Table 'users' existe", `docker exec ${PROJECT_NAME}_db psql -U ${POSTGRES_USER} -d ${PGDATABASE} -c "SELECT 1 FROM users LIMIT 1"`);
+}
 
 async function verifyBackend(): Promise<void> {
-  logSection("VÉRIFICATION SERVER", "gear");
-  testFile("server/.env", "server/.env");
-  testFile("server/src/index.ts", "server/src/index.ts");
-  await test("Package 'express' installé", "npm list express -w server");
-  await test("Package 'pg' installé", "npm list pg -w server");
-  projectStack.serverDependencies = extractDependencies("server/package.json");
+	logSection("VÉRIFICATION SERVER", "gear");
+	testFile("server/.env", "server/.env");
+	testFile("server/src/index.ts", "server/src/index.ts");
+	await test("Package 'express' installé", "npm list express -w server");
+	await test("Package 'pg' installé", "npm list pg -w server");
+	projectStack.serverDependencies = extractDependencies("server/package.json");
 }
 
-async function verifyFrontends(): Promise<void> { logSection("VÉRIFICATION FRONTEND (Web)", "frontend"); testFile("web", "Dossier web/"); process.stdout.write(`  Fichiers TypeScript/TSX ... `); if (hasFilesWithExtension("web", [".tsx", ".ts"])) { log(`${emoji.check} OK`, "green"); currentSectionTests.push({ name: "Fichiers TypeScript/TSX", status: "✓" }); totalPass++; } else { log(`${emoji.cross} FAIL`, "red"); currentSectionTests.push({ name: "Fichiers TypeScript/TSX", status: "✗" }); totalFail++; } testFile("web/package.json", "package.json"); const webDeps = extractDependencies("web/package.json"); projectStack.webDependencies = webDeps; logSection("VÉRIFICATION FRONTEND (Mobile)", "frontend"); testFile("mobile", "Dossier mobile/"); testFile("mobile/package.json", "package.json"); const mobileDeps = extractDependencies("mobile/package.json"); projectStack.mobileDependencies = mobileDeps; }
+async function verifyFrontends(): Promise<void> {
+	logSection("VÉRIFICATION FRONTEND (Web)", "frontend");
+	testFile("web", "Dossier web/");
+	process.stdout.write(`  Fichiers TypeScript/TSX ... `);
+	if (hasFilesWithExtension("web", [".tsx", ".ts"])) {
+		log(`${emoji.check} OK`, "green");
+		currentSectionTests.push({ name: "Fichiers TypeScript/TSX", status: "✓" });
+		totalPass++;
+	} else {
+		log(`${emoji.cross} FAIL`, "red");
+		currentSectionTests.push({ name: "Fichiers TypeScript/TSX", status: "✗" });
+		totalFail++;
+	}
+	testFile("web/package.json", "package.json");
+	const webDeps = extractDependencies("web/package.json");
+	projectStack.webDependencies = webDeps;
+	logSection("VÉRIFICATION FRONTEND (Mobile)", "frontend");
+	testFile("mobile", "Dossier mobile/");
+	testFile("mobile/package.json", "package.json");
+	const mobileDeps = extractDependencies("mobile/package.json");
+	projectStack.mobileDependencies = mobileDeps;
+}
 
-async function verifyConfig(): Promise<void> { logSection("VÉRIFICATION CONFIGURATION", "gear"); testFile("docker-compose.yml", "docker-compose.yml"); testFile(".gitignore", ".gitignore"); }
+async function verifyConfig(): Promise<void> {
+	logSection("VÉRIFICATION CONFIGURATION", "gear");
+	testFile("docker-compose.yml", "docker-compose.yml");
+	testFile(".gitignore", ".gitignore");
+}
 
-async function verifyMonorepo(): Promise<void> { logSection("VÉRIFICATION MONOREPO", "folder"); try { let count = 0; const walk = (path: string) => { const files = readdirSync(path, { withFileTypes: true }); for (const file of files) { if (["node_modules", ".git"].includes(file.name)) continue; if (file.isDirectory()) { walk(resolve(path, file.name)); } else if (file.name === "package.json") { count++; } } }; walk("."); process.stdout.write(`  Détection monorepo : ${count} package.json ... `); if (count >= 2) { log(`${emoji.check} OK`, "green"); currentSectionTests.push({ name: `${count} package.json détectés`, status: "✓" }); totalPass++; } else { log(`${emoji.cross} FAIL`, "red"); currentSectionTests.push({ name: "Monorepo structure", status: "✗" }); totalFail++; } } catch { log(`${emoji.cross} FAIL`, "red"); totalFail++; } }
+async function verifyMonorepo(): Promise<void> {
+	logSection("VÉRIFICATION MONOREPO", "folder");
+	try {
+		let count = 0;
+		const walk = (path: string) => {
+			const files = readdirSync(path, { withFileTypes: true });
+			for (const file of files) {
+				if (["node_modules", ".git"].includes(file.name)) continue;
+				if (file.isDirectory()) {
+					walk(resolve(path, file.name));
+				} else if (file.name === "package.json") {
+					count++;
+				}
+			}
+		};
+		walk(".");
+		process.stdout.write(`  Détection monorepo : ${count} package.json ... `);
+		if (count >= 2) {
+			log(`${emoji.check} OK`, "green");
+			currentSectionTests.push({ name: `${count} package.json détectés`, status: "✓" });
+			totalPass++;
+		} else {
+			log(`${emoji.cross} FAIL`, "red");
+			currentSectionTests.push({ name: "Monorepo structure", status: "✗" });
+			totalFail++;
+		}
+	} catch {
+		log(`${emoji.cross} FAIL`, "red");
+		totalFail++;
+	}
+}
 
 function getHealthUrl(): string {
-  const serverEnv = readFileSync("server/.env", "utf-8");
-  const webEnv = readFileSync("web/.env", "utf-8");
-  const port = serverEnv.match(/^PORT=(.+)$/m)?.[1]?.trim();
-  const configuredUrl = webEnv.match(/^VITE_API_URL=(.+)$/m)?.[1]?.trim();
-  const baseUrl = configuredUrl || `http://localhost:${port || "3310"}/api`;
-  return `${baseUrl.replace(/\/+$/, "")}/health`;
+	const serverEnv = readFileSync("server/.env", "utf-8");
+	const webEnv = readFileSync("web/.env", "utf-8");
+	const port = serverEnv.match(/^PORT=(.+)$/m)?.[1]?.trim();
+	const configuredUrl = webEnv.match(/^VITE_API_URL=(.+)$/m)?.[1]?.trim();
+	const baseUrl = configuredUrl || `http://localhost:${port || "3310"}/api`;
+	return `${baseUrl.replace(/\/+$/, "")}/health`;
 }
 
 async function verifyAPI(): Promise<void> {
-  logSection("VÉRIFICATION API", "api");
-  process.stdout.write("  Serveur backend ... ");
-  try {
-    const response = await fetch(getHealthUrl(), { signal: AbortSignal.timeout(3000) });
-    const data = (await response.json()) as { status?: string };
-    if (!response.ok || data.status !== "ok") {
-      throw new Error(`L'API répond avec le statut HTTP ${response.status}`);
-    }
+	logSection("VÉRIFICATION API", "api");
+	process.stdout.write("  Serveur backend ... ");
+	try {
+		const response = await fetch(getHealthUrl(), { signal: AbortSignal.timeout(3000) });
+		const data = (await response.json()) as { status?: string };
+		if (!response.ok || data.status !== "ok") {
+			throw new Error(`L'API répond avec le statut HTTP ${response.status}`);
+		}
 
-    log(`${emoji.check} OK`, "green");
-    currentSectionTests.push({ name: "Backend accessible", status: "✓" });
-    totalPass++;
-    projectStack.apiStatus = "running";
-  } catch (error) {
-    log(`${emoji.cross} FAIL (${error instanceof Error ? error.message : error})`, "red");
-    totalFail++;
-    currentSectionTests.push({ name: "Backend accessible", status: "✗" });
-    projectStack.apiStatus = "not_running";
-  }
+		log(`${emoji.check} OK`, "green");
+		currentSectionTests.push({ name: "Backend accessible", status: "✓" });
+		totalPass++;
+		projectStack.apiStatus = "running";
+	} catch (error) {
+		log(`${emoji.cross} FAIL (${error instanceof Error ? error.message : error})`, "red");
+		totalFail++;
+		currentSectionTests.push({ name: "Backend accessible", status: "✗" });
+		projectStack.apiStatus = "not_running";
+	}
 }
 
-async function verifyWorkspaceLinks(): Promise<void> { logSection("LIAISONS ENTRE WORKSPACES", "rocket"); testFile("server/.env", "server/.env présent"); testFile("web/.env", "web/.env présent"); testFile(".env", ".env (racine) présent"); process.stdout.write("  Cohérence PORT server/.env vs VITE_API_URL web/.env ... "); try { const serverEnv = readFileSync("server/.env", "utf-8"); const webEnv = readFileSync("web/.env", "utf-8"); const serverPort = serverEnv.match(/^PORT=(\d+)/m)?.[1]; const webApiUrl = webEnv.match(/^VITE_API_URL=.*:(\d+)/m)?.[1]; if (serverPort && webApiUrl && serverPort === webApiUrl) { log(`${emoji.check} OK (port ${serverPort})`, "green"); currentSectionTests.push({ name: "Cohérence ports server ↔ web", status: "✓" }); totalPass++; } else { log(`${emoji.cross} FAIL (server:${serverPort} ≠ web:${webApiUrl})`, "red"); currentSectionTests.push({ name: "Cohérence ports server ↔ web", status: "✗" }); totalFail++; } } catch { log(`${emoji.cross} FAIL`, "red"); currentSectionTests.push({ name: "Cohérence ports server ↔ web", status: "✗" }); totalFail++; } process.stdout.write("  Cohérence PGDATABASE server/.env vs .env racine ... "); try { const serverEnv = readFileSync("server/.env", "utf-8"); const rootEnv = readFileSync(".env", "utf-8"); const serverDb = serverEnv.match(/^PGDATABASE=(.+)/m)?.[1]; const rootDb = rootEnv.match(/^POSTGRES_DB=(.+)/m)?.[1]; if (serverDb && rootDb && serverDb === rootDb) { log(`${emoji.check} OK (${serverDb})`, "green"); currentSectionTests.push({ name: "Cohérence PGDATABASE server ↔ docker", status: "✓" }); totalPass++; } else { log(`${emoji.cross} FAIL (server:${serverDb} ≠ docker:${rootDb})`, "red"); currentSectionTests.push({ name: "Cohérence PGDATABASE server ↔ docker", status: "✗" }); totalFail++; } } catch { log(`${emoji.cross} FAIL`, "red"); currentSectionTests.push({ name: "Cohérence PGDATABASE server ↔ docker", status: "✗" }); totalFail++; } await test("server → DB (SELECT 1)", `docker exec ${PROJECT_NAME}_db psql -U ${POSTGRES_USER} -d ${PGDATABASE} -c "SELECT 1"`);
-	await test("server → DB (table users)", `docker exec ${PROJECT_NAME}_db psql -U ${POSTGRES_USER} -d ${PGDATABASE} -c "SELECT COUNT(*) FROM users"`); await test("web → server (GET /api/health)", "curl -s http://localhost:3310/api/health --connect-timeout 3"); await test("express installé (server)", "npm list express -w server"); await test("pg installé (server)", "npm list pg -w server"); await test("react installé (web)", "npm list react -w web"); process.stdout.write("  React Native installé (mobile) ... "); log(`${emoji.warning} Non configuré (ignoré)`, "yellow"); totalIgnored++; currentSectionTests.push({ name: "React Native (non configuré)", status: "⚠" }); process.stdout.write("  Cloudinary configuré (server/.env) ... "); try { const serverEnv = readFileSync("server/.env", "utf-8"); if (serverEnv.match(/CLOUDINARY.*=PENDING/)) { log(`${emoji.warning} Non configuré (ignoré)`, "yellow"); totalIgnored++; currentSectionTests.push({ name: "Cloudinary configuré", status: "⚠" }); } else { log(`${emoji.check} OK`, "green"); totalPass++; currentSectionTests.push({ name: "Cloudinary configuré", status: "✓" }); } } catch { log(`${emoji.warning} Non configuré (ignoré)`, "yellow"); totalIgnored++; currentSectionTests.push({ name: "Cloudinary configuré", status: "⚠" }); } process.stdout.write("  EmailJS configuré (server/.env) ... "); try { const serverEnv = readFileSync("server/.env", "utf-8"); if (serverEnv.match(/EMAILJS.*=PENDING/)) { log(`${emoji.warning} Non configuré (ignoré)`, "yellow"); totalIgnored++; currentSectionTests.push({ name: "EmailJS configuré", status: "⚠" }); } else { log(`${emoji.check} OK`, "green"); totalPass++; currentSectionTests.push({ name: "EmailJS configuré", status: "✓" }); } } catch { log(`${emoji.warning} Non configuré (ignoré)`, "yellow"); totalIgnored++; currentSectionTests.push({ name: "EmailJS configuré", status: "⚠" }); } }
+async function verifyWorkspaceLinks(): Promise<void> {
+	logSection("LIAISONS ENTRE WORKSPACES", "rocket");
+	testFile("server/.env", "server/.env présent");
+	testFile("web/.env", "web/.env présent");
+	testFile(".env", ".env (racine) présent");
+	process.stdout.write("  Cohérence PORT server/.env vs VITE_API_URL web/.env ... ");
+	try {
+		const serverEnv = readFileSync("server/.env", "utf-8");
+		const webEnv = readFileSync("web/.env", "utf-8");
+		const serverPort = serverEnv.match(/^PORT=(\d+)/m)?.[1];
+		const webApiUrl = webEnv.match(/^VITE_API_URL=.*:(\d+)/m)?.[1];
+		if (serverPort && webApiUrl && serverPort === webApiUrl) {
+			log(`${emoji.check} OK (port ${serverPort})`, "green");
+			currentSectionTests.push({ name: "Cohérence ports server ↔ web", status: "✓" });
+			totalPass++;
+		} else {
+			log(`${emoji.cross} FAIL (server:${serverPort} ≠ web:${webApiUrl})`, "red");
+			currentSectionTests.push({ name: "Cohérence ports server ↔ web", status: "✗" });
+			totalFail++;
+		}
+	} catch {
+		log(`${emoji.cross} FAIL`, "red");
+		currentSectionTests.push({ name: "Cohérence ports server ↔ web", status: "✗" });
+		totalFail++;
+	}
+	process.stdout.write("  Cohérence PGDATABASE server/.env vs .env racine ... ");
+	try {
+		const serverEnv = readFileSync("server/.env", "utf-8");
+		const rootEnv = readFileSync(".env", "utf-8");
+		const serverDb = serverEnv.match(/^PGDATABASE=(.+)/m)?.[1];
+		const rootDb = rootEnv.match(/^POSTGRES_DB=(.+)/m)?.[1];
+		if (serverDb && rootDb && serverDb === rootDb) {
+			log(`${emoji.check} OK (${serverDb})`, "green");
+			currentSectionTests.push({ name: "Cohérence PGDATABASE server ↔ docker", status: "✓" });
+			totalPass++;
+		} else {
+			log(`${emoji.cross} FAIL (server:${serverDb} ≠ docker:${rootDb})`, "red");
+			currentSectionTests.push({ name: "Cohérence PGDATABASE server ↔ docker", status: "✗" });
+			totalFail++;
+		}
+	} catch {
+		log(`${emoji.cross} FAIL`, "red");
+		currentSectionTests.push({ name: "Cohérence PGDATABASE server ↔ docker", status: "✗" });
+		totalFail++;
+	}
+	await test("server → DB (SELECT 1)", `docker exec ${PROJECT_NAME}_db psql -U ${POSTGRES_USER} -d ${PGDATABASE} -c "SELECT 1"`);
+	await test("server → DB (table users)", `docker exec ${PROJECT_NAME}_db psql -U ${POSTGRES_USER} -d ${PGDATABASE} -c "SELECT COUNT(*) FROM users"`);
+	await test("web → server (GET /api/health)", "curl -s http://localhost:3310/api/health --connect-timeout 3");
+	await test("express installé (server)", "npm list express -w server");
+	await test("pg installé (server)", "npm list pg -w server");
+	await test("react installé (web)", "npm list react -w web");
+	process.stdout.write("  React Native installé (mobile) ... ");
+	log(`${emoji.warning} Non configuré (ignoré)`, "yellow");
+	totalIgnored++;
+	currentSectionTests.push({ name: "React Native (non configuré)", status: "⚠" });
+	process.stdout.write("  Cloudinary configuré (server/.env) ... ");
+	try {
+		const serverEnv = readFileSync("server/.env", "utf-8");
+		if (serverEnv.match(/CLOUDINARY.*=PENDING/)) {
+			log(`${emoji.warning} Non configuré (ignoré)`, "yellow");
+			totalIgnored++;
+			currentSectionTests.push({ name: "Cloudinary configuré", status: "⚠" });
+		} else {
+			log(`${emoji.check} OK`, "green");
+			totalPass++;
+			currentSectionTests.push({ name: "Cloudinary configuré", status: "✓" });
+		}
+	} catch {
+		log(`${emoji.warning} Non configuré (ignoré)`, "yellow");
+		totalIgnored++;
+		currentSectionTests.push({ name: "Cloudinary configuré", status: "⚠" });
+	}
+	process.stdout.write("  EmailJS configuré (server/.env) ... ");
+	try {
+		const serverEnv = readFileSync("server/.env", "utf-8");
+		if (serverEnv.match(/EMAILJS.*=PENDING/)) {
+			log(`${emoji.warning} Non configuré (ignoré)`, "yellow");
+			totalIgnored++;
+			currentSectionTests.push({ name: "EmailJS configuré", status: "⚠" });
+		} else {
+			log(`${emoji.check} OK`, "green");
+			totalPass++;
+			currentSectionTests.push({ name: "EmailJS configuré", status: "✓" });
+		}
+	} catch {
+		log(`${emoji.warning} Non configuré (ignoré)`, "yellow");
+		totalIgnored++;
+		currentSectionTests.push({ name: "EmailJS configuré", status: "⚠" });
+	}
+}
 
-async function verifySecurity(): Promise<void> { logSection("SÉCURITÉ", "warning" as keyof typeof emoji); checkEnvValue("server/.env", "JWT_SECRET", ["changeme", "secret", "password", "123456", "jwt_secret"], "JWT_SECRET robuste"); checkEnvValue("server/.env", "NODE_ENV", [], "NODE_ENV défini (server)"); process.stdout.write("  .env dans .gitignore ... "); try { const gitignore = readFileSync(".gitignore", "utf-8"); if (gitignore.includes(".env")) { log(`${emoji.check} OK`, "green"); currentSectionTests.push({ name: ".env dans .gitignore", status: "✓" }); totalPass++; } else { log(`${emoji.cross} FAIL`, "red"); currentSectionTests.push({ name: ".env dans .gitignore", status: "✗" }); totalFail++; } } catch { log(`${emoji.cross} FAIL`, "red"); currentSectionTests.push({ name: ".env dans .gitignore", status: "✗" }); totalFail++; } testFile(".env.sample", ".env.sample présent"); process.stdout.write("  CORS CLIENT_URL non wildcard ... "); try { const serverEnv = readFileSync("server/.env", "utf-8"); const match = serverEnv.match(/^CLIENT_URL=(.+)/m); const value = match?.[1]?.trim(); if (!value) { log(`${emoji.warning} Non configuré (ignoré)`, "yellow"); totalIgnored++; currentSectionTests.push({ name: "CORS CLIENT_URL défini", status: "⚠" }); } else if (value === "*") { log(`${emoji.cross} FAIL (wildcard dangereux)`, "red"); currentSectionTests.push({ name: "CORS CLIENT_URL non wildcard", status: "✗" }); totalFail++; } else { log(`${emoji.check} OK (${value})`, "green"); currentSectionTests.push({ name: "CORS CLIENT_URL non wildcard", status: "✓" }); totalPass++; } } catch { log(`${emoji.cross} FAIL`, "red"); currentSectionTests.push({ name: "CORS CLIENT_URL non wildcard", status: "✗" }); totalFail++; } }
+async function verifySecurity(): Promise<void> {
+	logSection("SÉCURITÉ", "warning" as keyof typeof emoji);
+	checkEnvValue("server/.env", "JWT_SECRET", ["changeme", "secret", "password", "123456", "jwt_secret"], "JWT_SECRET robuste");
+	checkEnvValue("server/.env", "NODE_ENV", [], "NODE_ENV défini (server)");
+	process.stdout.write("  .env dans .gitignore ... ");
+	try {
+		const gitignore = readFileSync(".gitignore", "utf-8");
+		if (gitignore.includes(".env")) {
+			log(`${emoji.check} OK`, "green");
+			currentSectionTests.push({ name: ".env dans .gitignore", status: "✓" });
+			totalPass++;
+		} else {
+			log(`${emoji.cross} FAIL`, "red");
+			currentSectionTests.push({ name: ".env dans .gitignore", status: "✗" });
+			totalFail++;
+		}
+	} catch {
+		log(`${emoji.cross} FAIL`, "red");
+		currentSectionTests.push({ name: ".env dans .gitignore", status: "✗" });
+		totalFail++;
+	}
+	testFile(".env.sample", ".env.sample présent");
+	process.stdout.write("  CORS CLIENT_URL non wildcard ... ");
+	try {
+		const serverEnv = readFileSync("server/.env", "utf-8");
+		const match = serverEnv.match(/^CLIENT_URL=(.+)/m);
+		const value = match?.[1]?.trim();
+		if (!value) {
+			log(`${emoji.warning} Non configuré (ignoré)`, "yellow");
+			totalIgnored++;
+			currentSectionTests.push({ name: "CORS CLIENT_URL défini", status: "⚠" });
+		} else if (value === "*") {
+			log(`${emoji.cross} FAIL (wildcard dangereux)`, "red");
+			currentSectionTests.push({ name: "CORS CLIENT_URL non wildcard", status: "✗" });
+			totalFail++;
+		} else {
+			log(`${emoji.check} OK (${value})`, "green");
+			currentSectionTests.push({ name: "CORS CLIENT_URL non wildcard", status: "✓" });
+			totalPass++;
+		}
+	} catch {
+		log(`${emoji.cross} FAIL`, "red");
+		currentSectionTests.push({ name: "CORS CLIENT_URL non wildcard", status: "✗" });
+		totalFail++;
+	}
+}
 
 async function verifyCodeQuality(): Promise<void> {
-  logSection("QUALITÉ DU CODE", "gear");
-  await test("Biome check", "npx biome check --files-ignore-unknown=true");
-  await test("TypeScript", "npm run tsc");
+	logSection("QUALITÉ DU CODE", "gear");
+	await test("Biome check", "npx biome check --files-ignore-unknown=true");
+	await test("TypeScript", "npm run tsc");
 
-  const packages = [
-    ["package.json", ["dev", "start"]],
-    ["server/package.json", ["dev", "build", "start"]],
-    ["web/package.json", ["dev", "build"]],
-  ] as [string, string[]][];
+	const packages = [
+		["package.json", ["dev", "start"]],
+		["server/package.json", ["dev", "build", "start"]],
+		["web/package.json", ["dev", "build"]],
+	] as [string, string[]][];
 
-  for (const [pkg, scripts] of packages) {
-    for (const script of scripts) {
-      checkScriptExists(pkg, script);
-    }
-  }
+	for (const [pkg, scripts] of packages) {
+		for (const script of scripts) {
+			checkScriptExists(pkg, script);
+		}
+	}
 }
 
 async function verifyTests(): Promise<void> {
-  logSection("TESTS", "gear");
-  const packages = [
-    { label: "racine", path: "package.json", command: "npm test" },
-    { label: "server", path: "server/package.json", command: "npm test -w server" },
-    { label: "web", path: "web/package.json", command: "npm test -w web" },
-  ];
+	logSection("TESTS", "gear");
+	const packages = [
+		{ label: "racine", path: "package.json", command: "npm test" },
+		{ label: "server", path: "server/package.json", command: "npm test -w server" },
+		{ label: "web", path: "web/package.json", command: "npm test -w web" },
+	];
 
-  for (const item of packages) {
-    const pkg = JSON.parse(readFileSync(item.path, "utf-8"));
-    if (!pkg.scripts?.test) {
-      process.stdout.write(`  npm test (${item.label}) ... `);
-      log(`${emoji.warning} aucun script test défini`, "yellow");
-      currentSectionTests.push({ name: `npm test (${item.label}) non configuré`, status: "⚠" });
-      totalIgnored++;
-      continue;
-    }
+	for (const item of packages) {
+		const pkg = JSON.parse(readFileSync(item.path, "utf-8"));
+		if (!pkg.scripts?.test) {
+			process.stdout.write(`  npm test (${item.label}) ... `);
+			log(`${emoji.warning} aucun script test défini`, "yellow");
+			currentSectionTests.push({ name: `npm test (${item.label}) non configuré`, status: "⚠" });
+			totalIgnored++;
+			continue;
+		}
 
-    await test(`npm test (${item.label})`, item.command);
-  }
+		await test(`npm test (${item.label})`, item.command);
+	}
 }
 
-async function verifyGit(): Promise<void> { logSection("GIT / CI", "folder"); testFile(".git", "Git initialisé (.git/)"); }
+async function verifyGit(): Promise<void> {
+	logSection("GIT / CI", "folder");
+	testFile(".git", "Git initialisé (.git/)");
+}
 
 async function verifyPerformance(): Promise<void> {
-  logSection("PERFORMANCE", "chart");
+	logSection("PERFORMANCE", "chart");
 
-  process.stdout.write("  Temps de réponse /api/health ... ");
-  try {
-    const startedAt = performance.now();
-    const response = await fetch(getHealthUrl(), { signal: AbortSignal.timeout(3000) });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const ms = Math.round(performance.now() - startedAt);
-    log(`${emoji.check} OK (${ms}ms)`, "green");
-    currentSectionTests.push({ name: `Temps réponse API : ${ms}ms`, status: "✓" });
-    totalPass++;
-    projectStack.apiResponseMs = ms;
-  } catch (error) {
-    log(`${emoji.cross} FAIL (${error instanceof Error ? error.message : error})`, "red");
-    currentSectionTests.push({ name: "Temps de réponse API", status: "✗" });
-    totalFail++;
-  }
+	process.stdout.write("  Temps de réponse /api/health ... ");
+	try {
+		for (let attempt = 0; attempt < 5; attempt++) {
+			try {
+				await fetch(getHealthUrl(), { signal: AbortSignal.timeout(3000) });
+				break;
+			} catch {
+				await new Promise((resolveWait) => setTimeout(resolveWait, 1000));
+			}
+		}
+		const startedAt = performance.now();
+		const response = await fetch(getHealthUrl(), { signal: AbortSignal.timeout(3000) });
+		if (!response.ok) throw new Error(`HTTP ${response.status}`);
+		const ms = Math.round(performance.now() - startedAt);
+		log(`${emoji.check} OK (${ms}ms)`, "green");
+		currentSectionTests.push({ name: `Temps réponse API : ${ms}ms`, status: "✓" });
+		totalPass++;
+		projectStack.apiResponseMs = ms;
+	} catch (error) {
+		log(`${emoji.cross} FAIL (${error instanceof Error ? error.message : error})`, "red");
+		currentSectionTests.push({ name: "Temps de réponse API", status: "✗" });
+		totalFail++;
+	}
 
-  process.stdout.write("  Taille dist/ (web) ... ");
-  try {
-    const getSize = (target: string): number =>
-      fs.readdirSync(target, { withFileTypes: true }).reduce((total, entry) => {
-        const entryPath = resolve(target, entry.name);
-        return total + (entry.isDirectory() ? getSize(entryPath) : fs.statSync(entryPath).size);
-      }, 0);
-    const bytes = getSize("web/dist");
-    const size = `${(bytes / 1024).toFixed(1)} KB`;
-    log(`${emoji.check} OK (${size})`, "green");
-    currentSectionTests.push({ name: `Build size : ${size}`, status: "✓" });
-    totalPass++;
-    projectStack.buildSize = size;
-  } catch (error) {
-    log(`${emoji.cross} FAIL (${error instanceof Error ? error.message : error})`, "red");
-    currentSectionTests.push({ name: "Build size web/dist/", status: "✗" });
-    totalFail++;
-  }
+	process.stdout.write("  Taille dist/ (web) ... ");
+	try {
+		const getSize = (target: string): number =>
+			fs.readdirSync(target, { withFileTypes: true }).reduce((total, entry) => {
+				const entryPath = resolve(target, entry.name);
+				return total + (entry.isDirectory() ? getSize(entryPath) : fs.statSync(entryPath).size);
+			}, 0);
+		const bytes = getSize("web/dist");
+		const size = `${(bytes / 1024).toFixed(1)} KB`;
+		log(`${emoji.check} OK (${size})`, "green");
+		currentSectionTests.push({ name: `Build size : ${size}`, status: "✓" });
+		totalPass++;
+		projectStack.buildSize = size;
+	} catch (error) {
+		log(`${emoji.cross} FAIL (${error instanceof Error ? error.message : error})`, "red");
+		currentSectionTests.push({ name: "Build size web/dist/", status: "✗" });
+		totalFail++;
+	}
 }
 
-function addStackToMarkdown(): void { reportMarkdown += `## ${emoji.stack}  STACK TECHNIQUE\n\n`; reportMarkdown += `<!-- ------------------------------------ -->
-# 📦 Infos\n\n| Prop | Valeur |\n|------|--------|\n`; reportMarkdown += `| **Nom** | ${projectStack.PROJECT_NAME} |\n`; reportMarkdown += `| **Version** | ${projectStack.projectVersion} |\n\n`; reportMarkdown += `<!-- ------------------------------------ -->
-# 🛠 Outils\n\n| Outil | Version |\n|-------|---------|\n`; reportMarkdown += `| **Node.js** | ${projectStack.nodeVersion} |\n`; reportMarkdown += `| **npm** | ${projectStack.npmVersion} |\n`; reportMarkdown += `| **Biome** | ${projectStack.biomeVersion} |\n\n`; }
+function addStackToMarkdown(): void {
+	reportMarkdown += `## ${emoji.stack}  STACK TECHNIQUE\n\n`;
+	reportMarkdown += `<!-- ==================================== -->
+# 📦 Infos\n\n| Prop | Valeur |\n|------|--------|\n`;
+	reportMarkdown += `| **Nom** | ${projectStack.PROJECT_NAME} |\n`;
+	reportMarkdown += `| **Version** | ${projectStack.projectVersion} |\n\n`;
+	reportMarkdown += `<!-- ==================================== -->
+# 🛠 Outils\n\n| Outil | Version |\n|-------|---------|\n`;
+	reportMarkdown += `| **Node.js** | ${projectStack.nodeVersion} |\n`;
+	reportMarkdown += `| **npm** | ${projectStack.npmVersion} |\n`;
+	reportMarkdown += `| **Biome** | ${projectStack.biomeVersion} |\n\n`;
+}
 
 function printSummary(): void {
-  addSectionToMarkdown();
-  console.log("");
-  log("═".repeat(60), "blue");
-  log(`\n${emoji.chart}  RÉSUMÉ`, "bright");
-  log(`\n  ${emoji.check} Réussis   : ${colors.green}${totalPass}${colors.reset}`, "reset");
-  log(`  ${emoji.cross} Échoués   : ${colors.red}${totalFail}${colors.reset}`, "reset");
-  log(`  ${emoji.warning} Ignorés   : ${colors.yellow}${totalIgnored}${colors.reset}`, "reset");
-  log(`  ⬡ Générés   : ${colors.blue}${totalGenerated}${colors.reset}`, "reset");
-  const total = totalPass + totalFail + totalIgnored;
-  const percentage = total > 0 ? Math.round((totalPass / total) * 100) : 0;
-  log(`  >>Taux      : ${percentage}%\n`, "reset");
+	addSectionToMarkdown();
+	console.log("");
+	log("═".repeat(60), "blue");
+	log(`\n${emoji.chart}  RÉSUMÉ`, "bright");
+	log(`\n  ${emoji.check} Réussis   : ${colors.green}${totalPass}${colors.reset}`, "reset");
+	log(`  ${emoji.cross} Échoués   : ${colors.red}${totalFail}${colors.reset}`, "reset");
+	log(`  ${emoji.warning} Ignorés   : ${colors.yellow}${totalIgnored}${colors.reset}`, "reset");
+	log(`  ⬡ Générés   : ${colors.blue}${totalGenerated}${colors.reset}`, "reset");
+	const total = totalPass + totalFail;
+	const percentage = total > 0 ? Math.round((totalPass / total) * 100) : 0;
+	log(`  >>Taux      : ${percentage}%\n`, "reset");
 
-  if (totalFail === 0) {
-    log("═".repeat(60), "green");
-    log(`\n${emoji.party}  DIAGNOSTIC TERMINÉ — vérifiez les tests ignorés avant livraison`, "green");
-  } else {
-    log("═".repeat(60), "red");
-    log(`\n${emoji.sad}  ERREURS DÉTECTÉES\n`, "red");
-    let lastSection = "";
-    for (const failure of allFailedTests) {
-      if (failure.section !== lastSection) {
-        log(`\n  ${failure.section}`, "cyan");
-        lastSection = failure.section;
-      }
-      log(`    ${emoji.cross} ${failure.name}`, "red");
-    }
-    console.log("");
-  }
+	if (totalFail === 0) {
+		log("═".repeat(60), "green");
+		log(`\n${emoji.party}  DIAGNOSTIC TERMINÉ — vérifiez les tests ignorés avant livraison`, "green");
+	} else {
+		log("═".repeat(60), "red");
+		log(`\n${emoji.sad}  ERREURS DÉTECTÉES\n`, "red");
+		let lastSection = "";
+		for (const failure of allFailedTests) {
+			if (failure.section !== lastSection) {
+				log(`\n  ${failure.section}`, "cyan");
+				lastSection = failure.section;
+			}
+			log(`    ${emoji.cross} ${failure.name}`, "red");
+		}
+		console.log("");
+	}
 
-  log("═".repeat(60), "blue");
-  console.log("");
+	log("═".repeat(60), "blue");
+	console.log("");
 }
 
-function exportReport(): void { const fileName = `setup/verify_monorepo/verify-report-${new Date().toISOString().split("T")[0]}.md`; const readmeFileName = "README.md"; try { const cssContent = getReportCSS(); const percentage = totalPass + totalFail > 0 ? Math.round((totalPass / (totalPass + totalFail + totalIgnored)) * 100) : 0; const summaryMarkdown = `<div class="summary"><div class="summary-left"><div class="summary-item pass"style="color:white!important"> Réussis : ${totalPass}</div><div class="summary-item fail"style="color:white!important"> Échoués : ${totalFail}</div><div class="summary-item ignored"style="color:white!important"> Ignorés : ${totalIgnored}</div><div class="summary-item generated"style="color:white!important"> Générés : ${totalGenerated}</div></div><div class="summary-divider"></div><div class="summary-rate" style="color:white!important">📊 Taux : ${percentage}%</div></div>`; const styledReport = `${reportMarkdown}\n\n<style>\n${cssContent}\n</style>`; const finalMarkdown = styledReport.replace(/(\*\*Heure du test :\*\*.+?\n\n)/, `$1${summaryMarkdown}\n\n`); addStackToMarkdown(); const tree = buildProjectTree("."); const completeMarkdown = finalMarkdown + `## 📁  ARBORESCENCE DU PROJET
+function exportReport(): void {
+	const fileName = `setup/verify_monorepo/verify-report-${new Date().toISOString().split("T")[0]}.md`;
+	const readmeFileName = "README.md";
+	try {
+		const cssContent = getReportCSS();
+		writeFileSync("setup/verify_monorepo/report.css", cssContent, "utf-8");
+		const percentage = totalPass + totalFail > 0 ? Math.round((totalPass / (totalPass + totalFail)) * 100) : 0;
+		const summaryMarkdown = `<div class="summary"><div class="summary-left"><div class="summary-item pass"style="color:white!important"> Réussis : ${totalPass}</div><div class="summary-item fail"style="color:white!important"> Échoués : ${totalFail}</div><div class="summary-item ignored"style="color:white!important"> Ignorés : ${totalIgnored}</div><div class="summary-item generated"style="color:white!important"> Générés : ${totalGenerated}</div></div><div class="summary-divider"></div><div class="summary-rate" style="color:white!important">📊 Taux : ${percentage}%</div></div>`;
+		const styledReport = reportMarkdown;
+		const finalMarkdown = styledReport.replace(/(\*\*Heure du test :\*\*.+?\n\n)/, `$1${summaryMarkdown}\n\n`);
+		addStackToMarkdown();
+		const tree = buildProjectTree(".");
+		const completeMarkdown =
+			finalMarkdown +
+			`## 📁  ARBORESCENCE DU PROJET
 
 \`\`\`
 .
@@ -1343,21 +1980,21 @@ ${tree}\`\`\`
 
 `;
 
-    writeFileSync(fileName, completeMarkdown, "utf-8");
-    writeFileSync(readmeFileName, completeMarkdown, "utf-8");
-    log(`${emoji.check} Rapport généré : ${fileName}`, "green");
-    log(`${emoji.check} README.md généré`, "green");
-  } catch (error) {
-    log(`${emoji.cross} Échec de génération du rapport : ${error instanceof Error ? error.message : error}`, "red");
-    throw error;
-  }
+		writeFileSync(fileName, completeMarkdown, "utf-8");
+		writeFileSync(readmeFileName, completeMarkdown, "utf-8");
+		log(`${emoji.check} Rapport généré : ${fileName}`, "green");
+		log(`${emoji.check} README.md généré`, "green");
+	} catch (error) {
+		log(`${emoji.cross} Échec de génération du rapport : ${error instanceof Error ? error.message : error}`, "red");
+		throw error;
+	}
 }
 
 function generateCIWorkflow(): void {
-  const workflowDir = ".github/workflows";
-  fs.mkdirSync(workflowDir, { recursive: true });
+	const workflowDir = ".github/workflows";
+	fs.mkdirSync(workflowDir, { recursive: true });
 
-  const ciYaml = `name: CI
+	const ciYaml = `name: CI
 
 on:
   push:
@@ -1396,16 +2033,49 @@ jobs:
         run: npm run build -w server
 `;
 
-  fs.writeFileSync(`${workflowDir}/ci.yml`, ciYaml);
+	fs.writeFileSync(`${workflowDir}/ci.yml`, ciYaml);
 }
 
-function getReportCSS(): string { return `body { font-family: "Segoe UI", sans-serif; font-size: 13px; color: black; max-width: 900px; margin: 0 auto; padding: 2rem; } .ok { color: #16a34a; font-weight: 700; } .fail { color: #dc2626; font-weight: 700; } .generated { color: #006666; font-weight: 700; } h1 { font-size: 24px; font-weight: 700; color: black; border-bottom: 3px solid #006666; padding-bottom: 0.5rem; margin-bottom: 0.25rem; } h1 + p { color: #006666; font-size: 12px; margin-top: 0; margin-bottom: 2rem; } h2 { font-size: 14px; font-weight: 600; color: white; background: #006666; padding: 6px 14px; border-radius: 6px; margin-top: 1.8rem; margin-bottom: 0.5rem; } h3 { font-size: 13px; font-weight: 600; color: #006666; border-left: 3px solid #006666; padding-left: 10px; margin-top: 1.2rem; } table { width: 100%; border-collapse: collapse; margin-bottom: 0.5rem; font-size: 12.5px; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); } thead tr { color: #006666; font-weight: 600; } th, td { padding: 7px 14px; text-align: left; border-bottom: 1px solid #e5e7eb; } tr:last-child td { border-bottom: none; } tr:nth-child(even) td { background: #fafafa; } td:last-child { font-weight: 500; white-space: nowrap; width: 120px; } code { color: black !important; padding: 1px 6px; border-radius: 4px; font-size: 12px; font-family: "Cascadia Code", "Fira Code", monospace; } pre { padding: 1rem 1.2rem; border-radius: 8px; font-size: 11.5px; overflow-x: auto; line-height: 1.6; font-family: "Cascadia Code", "Fira Code", monospace; } pre code { background: none; color: black; padding: 0; font-size: inherit; } strong { color: black; } p { margin: 0.3rem 0; } .summary { background: linear-gradient(135deg, #006666 0%, #004d4d 100%); color: white; padding: 1.5rem; border-radius: 8px; margin: 2rem 0; font-size: 14px; line-height: 1.8; display: flex; flex-direction: row; align-items: center; gap: 1.5rem; } .summary-left { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 2rem; flex: 2; } .summary-item { display: flex; align-items: center; font-weight: 500; } .summary-item::before { content: ''; display: inline-block; width: 12px; height: 12px; margin-right: 8px; border-radius: 50%; background: rgba(255,255,255,0.2); } .summary-item.pass::before { background: #16a34a; box-shadow: 0 0 6px rgba(22, 163, 74, 0.5); } .summary-item.fail::before { background: #dc2626; box-shadow: 0 0 6px rgba(220, 38, 38, 0.5); } .summary-item.ignored::before { background: #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, 0.5); } .summary-item.generated::before { background: #4dd9ff; box-shadow: 0 0 6px rgba(77, 217, 255, 0.5); } .summary-divider { width: 2px; background: rgba(255,255,255,0.2); align-self: stretch; } .summary-rate { font-size: 20px; font-weight: 700; flex: 1; text-align: center; } .dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; vertical-align: middle; position: relative; top: -1px; } .dot-ok { background: #16a34a; box-shadow: 0 0 5px rgba(22,163,74,0.5); } .dot-fail { background: #dc2626; box-shadow: 0 0 5px rgba(220,38,38,0.5); } .dot-ignored { background: #f59e0b; box-shadow: 0 0 5px rgba(245,158,11,0.5); } .dot-generated { background: #4dd9ff; box-shadow: 0 0 5px rgba(77,217,255,0.5);}`.trim(); }
+function getReportCSS(): string {
+	return `body { font-family: "Segoe UI", sans-serif; font-size: 13px; color: black; max-width: 900px; margin: 0 auto; padding: 2rem; } .ok { color: #16a34a; font-weight: 700; } .fail { color: #dc2626; font-weight: 700; } .generated { color: #006666; font-weight: 700; } h1 { font-size: 24px; font-weight: 700; color: black; border-bottom: 3px solid #006666; padding-bottom: 0.5rem; margin-bottom: 0.25rem; } h1 + p { color: #006666; font-size: 12px; margin-top: 0; margin-bottom: 2rem; } h2 { font-size: 14px; font-weight: 600; color: white; background: #006666; padding: 6px 14px; border-radius: 6px; margin-top: 1.8rem; margin-bottom: 0.5rem; } h3 { font-size: 13px; font-weight: 600; color: #006666; border-left: 3px solid #006666; padding-left: 10px; margin-top: 1.2rem; } table { width: 100%; border-collapse: collapse; margin-bottom: 0.5rem; font-size: 12.5px; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); } thead tr { color: #006666; font-weight: 600; } th, td { padding: 7px 14px; text-align: left; border-bottom: 1px solid #e5e7eb; } tr:last-child td { border-bottom: none; } tr:nth-child(even) td { background: #fafafa; } td:last-child { font-weight: 500; white-space: nowrap; width: 120px; } code { color: black !important; padding: 1px 6px; border-radius: 4px; font-size: 12px; font-family: "Cascadia Code", "Fira Code", monospace; } pre { padding: 1rem 1.2rem; border-radius: 8px; font-size: 11.5px; overflow-x: auto; line-height: 1.6; font-family: "Cascadia Code", "Fira Code", monospace; } pre code { background: none; color: black; padding: 0; font-size: inherit; } strong { color: black; } p { margin: 0.3rem 0; } .summary { background: linear-gradient(135deg, #006666 0%, #004d4d 100%); color: white; padding: 1.5rem; border-radius: 8px; margin: 2rem 0; font-size: 14px; line-height: 1.8; display: flex; flex-direction: row; align-items: center; gap: 1.5rem; } .summary-left { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 2rem; flex: 2; } .summary-item { display: flex; align-items: center; font-weight: 500; } .summary-item::before { content: ''; display: inline-block; width: 12px; height: 12px; margin-right: 8px; border-radius: 50%; background: rgba(255,255,255,0.2); } .summary-item.pass::before { background: #16a34a; box-shadow: 0 0 6px rgba(22, 163, 74, 0.5); } .summary-item.fail::before { background: #dc2626; box-shadow: 0 0 6px rgba(220, 38, 38, 0.5); } .summary-item.ignored::before { background: #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, 0.5); } .summary-item.generated::before { background: #4dd9ff; box-shadow: 0 0 6px rgba(77, 217, 255, 0.5); } .summary-divider { width: 2px; background: rgba(255,255,255,0.2); align-self: stretch; } .summary-rate { font-size: 20px; font-weight: 700; flex: 1; text-align: center; } .dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; vertical-align: middle; position: relative; top: -1px; } .dot-ok { background: #16a34a; box-shadow: 0 0 5px rgba(22,163,74,0.5); } .dot-fail { background: #dc2626; box-shadow: 0 0 5px rgba(220,38,38,0.5); } .dot-ignored { background: #f59e0b; box-shadow: 0 0 5px rgba(245,158,11,0.5); } .dot-generated { background: #4dd9ff; box-shadow: 0 0 5px rgba(77,217,255,0.5);}`.trim();
+}
 
-async function main(): Promise<void> { logTitle("CODE QUALITY REPORT"); log(`Heure : ${timestamp}\n`, "dim"); try { await verifyProject(); await verifyVersions(); await verifyDocker(); await verifyDatabase(); await verifyBackend(); await verifyFrontends(); await verifyConfig(); await verifyMonorepo(); await verifyAPI(); await verifyWorkspaceLinks(); await verifySecurity(); await verifyCodeQuality(); await verifyTests(); await verifyGit(); await verifyPerformance(); generateCIWorkflow(); markGenerated("Pipeline CI (.github/workflows/ci.yml)"); addSectionToMarkdown(); exportReport(); markGenerated("README.md"); markGenerated(`Rapport setup/verify_monorepo/verify-report-${new Date().toISOString().split("T")[0]}.md`); printSummary(); process.exit(totalFail === 0 ? 0 : 1); } catch (error) { log(`\n${emoji.boom} ERREUR : ${(error as Error).message}`, "red"); process.exit(1); } }
+async function main(): Promise<void> {
+	logTitle("CODE QUALITY REPORT");
+	log(`Heure : ${timestamp}\n`, "dim");
+	try {
+		await verifyProject();
+		await verifyVersions();
+		await verifyDocker();
+		await verifyDatabase();
+		await verifyBackend();
+		await verifyFrontends();
+		await verifyConfig();
+		await verifyMonorepo();
+		await verifyAPI();
+		await verifyWorkspaceLinks();
+		await verifySecurity();
+		await verifyCodeQuality();
+		await verifyTests();
+		await verifyGit();
+		await verifyPerformance();
+		generateCIWorkflow();
+		markGenerated("Pipeline CI (.github/workflows/ci.yml)");
+		addSectionToMarkdown();
+		exportReport();
+		markGenerated("README.md");
+		markGenerated(`Rapport setup/verify_monorepo/verify-report-${new Date().toISOString().split("T")[0]}.md`);
+		printSummary();
+		process.exit(totalFail === 0 ? 0 : 1);
+	} catch (error) {
+		log(`\n${emoji.boom} ERREUR : ${(error as Error).message}`, "red");
+		process.exit(1);
+	}
+}
 
 main();
 ```
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 23 - mobile > Créer la structure vide
 Les dossiers mobile/ et son package.json ont déjà été créés à l'étape 06.
 
@@ -1414,7 +2084,7 @@ Les dossiers mobile/ et son package.json ont déjà été créés à l'étape 06
 ```bash
 mkdir -p mobile/src/components/Header mobile/src/components/Footer mobile/src/pages mobile/src/constants mobile/src/styles mobile/src/utils && touch mobile/src/main.tsx mobile/src/App.tsx mobile/src/styles/index.css mobile/src/components/Header/Header.tsx mobile/src/components/Footer/Footer.tsx
 ```
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 24 - web > Créer le frontend avec Vite
 ▷ Initialiser le projet frontend React TypeScript avec Vite dans le dossier web/.
 
@@ -1434,7 +2104,7 @@ Répondre aux quatre questions ainsi :
 - L'étape 25 le supprimera ensuite, car Biome est le linter retenu pour le monorepo.
 
 3. `Install with npm and start now?` — choisir `No`.
-- Les dépendances seront installées à la racine du monorepo à l'étape 36.
+- Les dépendances seront installées à la racine du monorepo à l'étape 37.
 
 4. `Ok to proceed? (y)` — répondre `y` puis appuyer sur Entrée pour lancer create-vite.
 
@@ -1451,7 +2121,7 @@ Ne pas sélectionner `Yes` à la quatrième question : cela installe les dépend
   npm run dev
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 25 - web > Supprimer les dépendances ESLint
 Le template Vite installe ESLint par défaut. Mais Biome est déjà configuré à la racine et couvre web/, avoir deux linters crée des conflits de règles et double la configuration à maintenir.
 
@@ -1467,7 +2137,7 @@ npm pkg delete devDependencies.globals
 npm pkg delete devDependencies.typescript-eslint
 npm pkg delete scripts.lint
 ```
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 26 - web > Supprimer le fichier de configuration ESLint
 
 ▷ Supprimer le fichier eslint.config.js généré par Vite.
@@ -1476,7 +2146,7 @@ npm pkg delete scripts.lint
 rm -f eslint.config.js
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 27 - web > Ajouter les dépendances applicatives
 - react-router v7 : Gestion de la navigation et du routage.
 - react-toastify : Notifications et toasts dans l'interface.
@@ -1492,7 +2162,7 @@ npm pkg set dependencies.@emailjs/browser="latest"
 npm pkg set dependencies.@appstarter/shared="*"
 npm pkg set devDependencies.@types/node="latest"
 ```
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 28 - web > Créer les fichiers .env
 
 ▷ Créer le fichier .env.sample et le .env du frontend avec les variables de configuration nécessaires.
@@ -1507,17 +2177,20 @@ cd ..
 🔴 Erreur fréquente
 Oublier de renseigner les vraies valeurs dans le fichier .env est problématique. L'application ne pourra pas se connecter correctement aux services comme la base de données et risque de ne pas fonctionner.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 29 - server > Créer le dossier et initialiser npm
 ▷ Créer le dossier server/ et initialiser npm dedans.
 
 ```bash
 mkdir server && cd server && npm init -y
+npm pkg set type="module" main="dist/index.js"
+npm pkg set scripts.dev="tsx watch src/index.ts" scripts.build="tsc -p tsconfig.json" scripts.start="node dist/index.js"
+npm pkg delete description keywords author license
 ```
 🔵 Info
 Vérifier que server/package.json a bien été créé avant de continuer.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 30 - server > Ajouter les dépendances du serveur
 - Framework HTTP : express v5, typescript, tsx, et types TypeScript pour Node.js et Express.
 - Base de données PostgreSQL : pg et ses types TypeScript.
@@ -1558,24 +2231,29 @@ npm pkg set devDependencies.@types/multer="latest"
 🟡 Attention
 cloudinary SDK v2+ inclut ses types. Ne pas installer @types/cloudinary.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 31 - server > Créer tsconfig.json
 ▷ Créer le tsconfig.json du serveur avec la configuration TypeScript.
 
 ```bash
 node -e "require('fs').writeFileSync('tsconfig.json', JSON.stringify({
   compilerOptions: {
-    target: 'ES2020',
-    module: 'commonjs',
+    target: 'ES2022',
+    module: 'NodeNext',
+    moduleResolution: 'NodeNext',
     strict: true,
     esModuleInterop: true,
     outDir: './dist',
     rootDir: './src'
-  }
+  },
+  include: ['src/**/*']
 }, null, 2))"
 ```
 
-<!-- ------------------------------------ -->
+🔵 Info
+Le serveur est en ES modules (`module: NodeNext`) : dans `server/src`, les imports relatifs doivent porter l'extension `.js` (`import { x } from "./routes.js"`), même pour un fichier `.ts`.
+
+<!-- ==================================== -->
 # 32 - server > Créer les dossiers et fichiers vides
 ▷ Créer les dossiers src/ et database/script/ ainsi que les fichiers vides src/index.ts et database/script/schema.sql.
 
@@ -1583,7 +2261,7 @@ node -e "require('fs').writeFileSync('tsconfig.json', JSON.stringify({
 mkdir -p src database/script
 touch src/index.ts database/script/schema.sql
 ```
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 33 - server > Créer les fichiers .env.sample et .env
 ▷ Créer le fichier .env.sample et le .env du serveur avec les variables de configuration nécessaires.
 
@@ -1596,7 +2274,7 @@ node --input-type=module -e "import { copyFileSync, constants } from 'node:fs'; 
 🔴 Erreur fréquente
 Oublier de renseigner les vraies valeurs dans le fichier .env est problématique. L'application ne pourra pas se connecter correctement aux services comme la base de données et risque de ne pas fonctionner.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 34 - racine > Lancer update-package-name.ts
 Ce script initialise les valeurs propres au projet dans les fichiers .env : le nom d'application dans server/.env, web/.env et mobile/.env, le nom du projet et de la base de données dans .env et server/.env, et un JWT_SECRET dans server/.env. Il ne modifie pas shared/src/constants.ts ; les paramètres sont lus par chaque application depuis son environnement.
 
@@ -1607,7 +2285,7 @@ cd ..
 npx tsx setup/update-package-name.ts
 ```
 
-Comme les dépendances du projet ne seront installées qu'à l'étape 36, `npx` peut afficher une invite telle que `Need to install the following packages: tsx@... Ok to proceed? (y)`. Répondre `y` puis appuyer sur Entrée. Cela permet à `npx` de récupérer `tsx` pour exécuter ce script ; continuer ensuite la notice jusqu'à l'installation complète.
+Comme les dépendances du projet ne seront installées qu'à l'étape 37, `npx` peut afficher une invite telle que `Need to install the following packages: tsx@... Ok to proceed? (y)`. Répondre `y` puis appuyer sur Entrée. Cela permet à `npx` de récupérer `tsx` pour exécuter ce script ; continuer ensuite la notice jusqu'à l'installation complète.
 
 🔵 Sortie attendue
 ```text
@@ -1640,7 +2318,7 @@ Si le script est relancé après un premier passage, il affiche qu'aucun remplac
 🔴 Erreur fréquente
 Si le terminal signale un fichier .env requis introuvable, vérifier que la commande est lancée depuis la racine du monorepo et que les étapes 06, 11, 28 et 33 ont été effectuées. Taper pwd pour vérifier le dossier courant.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 35 - racine > Créer le .gitignore et formater avec Biome
 Avant de lancer le serveur, créer le `.gitignore` à la racine du monorepo, puis s'assurer que le code est bien formaté selon Biome. Biome lit ce fichier (`useIgnoreFile: true` dans `biome.json`) pour savoir quels fichiers ignorer.
 
@@ -1671,7 +2349,7 @@ Pour un projet déjà créé avec une ancienne configuration, lancer `npx biome 
 Formatted 33 files in 138ms. Fixed 18 files.
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 36 - racine > Corriger les fichiers du template Vite et lancer le lint
 Le template Vite génère quatre éléments que Biome refuse : une assertion non nulle dans `main.tsx`, deux SVG sans titre dans `web/public/` et un lien au texte ambigu dans `App.tsx`. Les corriger avant de lancer `npm run fix`.
 
@@ -1697,7 +2375,7 @@ Corriger les erreurs de lint avant de continuer ; le formatage automatique ne r�
 🔵 Sortie attendue
 Biome ne signale plus aucune erreur à la fin de `npm run fix`.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 37 - racine > Lancer npm install pour finaliser
 Maintenant que tous les dossiers (web/, server/, mobile/ et shared/) ont leurs package.json respectifs, que les applications déclarent leur dépendance à @appstarter/shared et que les workspaces sont déclarés à la racine, npm peut installer et relier l'ensemble du monorepo.
 
@@ -1710,7 +2388,7 @@ npm ls "@$(basename "$PWD" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_]/_/g'
 ```
 La compilation génère les versions ESM et CommonJS dans shared/dist/. La commande de vérification doit afficher @appstarter/shared dans les workspaces web, server et mobile. Le dossier shared/node_modules n'est pas nécessaire : npm relie le package dans le node_modules racine.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 38 - racine > Initialiser Git et commiter la structure
 Git permet de versionner le code et de revenir à un état antérieur en cas d'erreur. Initialiser ici, après la structure de base, crée un point de départ propre. Le monorepo est structuré et toutes les dépendances sont installées.
 
@@ -1721,7 +2399,7 @@ git init
 git branch -M main
 git add .
 ```
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 39 - racine > Commiter la structure initiale
 🟡 Attention
 Personnaliser le message de commit ci-dessous avant de lancer la commande.

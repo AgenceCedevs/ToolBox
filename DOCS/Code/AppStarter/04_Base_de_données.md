@@ -1,4 +1,4 @@
-# 04 - Base de données
+# 04_Base de données
 Ce module démarre PostgreSQL via Docker Compose, initialise le schéma SQL de façon relançable et configure le pool de connexions du backend. Les noms, identifiants et ports proviennent des fichiers `.env` créés au module 01 ; les valeurs indiquées ci-dessous sont des valeurs locales par défaut, pas des constantes à recopier dans le code.
 
 À la fin de ce module :
@@ -7,19 +7,20 @@ Ce module démarre PostgreSQL via Docker Compose, initialise le schéma SQL de f
 - La route /api/health teste la connexion à la base de données.
 - Le terminal affiche 🟢 Base de données connectée au démarrage du serveur.
 - pgAdmin est accessible sur le port défini par `PGADMIN_PORT` dans le `.env` racine.
-<!-- ------------------------------------ -->
+
+<!-- ==================================== -->
 # 01 - server > Créer la structure database
 Créer le dossier server/src/database/ et les fichiers avec touch. Le contenu sera collé dans l'éditeur aux étapes suivantes.
 
 ▷ Créer les dossiers et fichiers vides.
 
 ```bash
-
 mkdir -p server/src/database
 touch server/src/database/client.ts
 touch server/src/database/init-db.ts
 ```
-<!-- ------------------------------------ -->
+
+<!-- ==================================== -->
 # 02 - server > database > script > Remplir schema.sql
 Ce fichier définit la structure initiale de la base de données. Il sera exécuté lors de l'initialisation via npm run db:init.
 
@@ -62,14 +63,13 @@ FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 🔵 Info
 Ce schéma crée une table users de base avec les champs essentiels. Il peut être exécuté plusieurs fois sans créer de doublons. Aucun faux compte utilisateur n'est inséré : les comptes devront être créés par le flux d'inscription, avec un mot de passe réellement haché par le serveur.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 03 - server > src > database > Remplir client.ts
 Le fichier client.ts exporte un pool de connexion PostgreSQL. Il est importé par tous les fichiers qui ont besoin d'accéder à la base de données.
 
 ▷ Ouvrir le fichier server/src/database/client.ts et coller le contenu suivant.
 
 ```typescript
-
 import "dotenv/config";
 import pg from "pg";
 
@@ -82,9 +82,7 @@ const password = process.env.PGPASSWORD || process.env.POSTGRES_PASSWORD;
 const database = process.env.PGDATABASE || process.env.POSTGRES_DB;
 
 if (!user || !password || !database) {
-	throw new Error(
-		"Variables PostgreSQL manquantes : PGUSER/POSTGRES_USER, PGPASSWORD/POSTGRES_PASSWORD et PGDATABASE/POSTGRES_DB.",
-	);
+	throw new Error("Variables PostgreSQL manquantes : PGUSER/POSTGRES_USER, PGPASSWORD/POSTGRES_PASSWORD et PGDATABASE/POSTGRES_DB.");
 }
 
 const pool = new Pool({
@@ -104,14 +102,13 @@ export default pool;
 🔵 Info
 Le client accepte les variables standard `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`, ainsi que les noms `POSTGRES_USER`, `POSTGRES_PASSWORD` et `POSTGRES_DB` utilisés par Docker Compose et les fichiers `.env` du module 01. Les valeurs sont lues à l'exécution ; ne les inscrivez pas dans le code.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 04 - server > src > database > Remplir init-db.ts
 Ce script lit le fichier schema.sql et l'exécute sur la base de données au démarrage. Il sera lancé avec npm run db:init.
 
 ▷ Ouvrir le fichier server/src/database/init-db.ts et coller le contenu suivant.
 
 ```typescript
-
 import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -124,10 +121,7 @@ const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../../..");
-const schemaPath = path.resolve(
-	projectRoot,
-	"server/database/script/schema.sql",
-);
+const schemaPath = path.resolve(projectRoot, "server/database/script/schema.sql");
 const sql = await readFile(schemaPath, "utf8");
 
 const host = process.env.PGHOST || "localhost";
@@ -137,9 +131,7 @@ const password = process.env.PGPASSWORD || process.env.POSTGRES_PASSWORD;
 const database = process.env.PGDATABASE || process.env.POSTGRES_DB;
 
 if (!user || !password || !database) {
-	throw new Error(
-		"Variables PostgreSQL manquantes : PGUSER/POSTGRES_USER, PGPASSWORD/POSTGRES_PASSWORD et PGDATABASE/POSTGRES_DB.",
-	);
+	throw new Error("Variables PostgreSQL manquantes : PGUSER/POSTGRES_USER, PGPASSWORD/POSTGRES_PASSWORD et PGDATABASE/POSTGRES_DB.");
 }
 
 const initPool = new Pool({
@@ -195,21 +187,20 @@ await main();
 ```
 
 `pg` transmet ici le fichier SQL complet à PostgreSQL. Ne pas découper le SQL avec une regex ou sur les points-virgules : les fonctions PL/pgSQL contiennent elles-mêmes des points-virgules et les chaînes peuvent contenir des `$`.
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 05 - racine > Ajouter le script db:init au package.json
 ▷ Ajouter le script db:init au package.json racine.
 
 ```bash
 npm pkg set scripts.db:init="npx tsx server/src/database/init-db.ts"
 ```
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 06 - server > src > routes > Mettre à jour health.router.ts
 Mettre à jour la route health pour qu'elle teste également la connexion à la base de données.
 
 ▷ Ouvrir le fichier server/src/routes/health.router.ts et remplacer le contenu existant par le contenu suivant.
 
 ```typescript
-
 import type { Request, Response } from "express";
 import { Router } from "express";
 import pool from "../database/client.js";
@@ -237,8 +228,9 @@ healthRouter.get("/", async (_req: Request, res: Response) => {
 });
 
 export default healthRouter;
+
 ```
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 07 - server > src > Mettre à jour index.ts
 Mettre à jour le fichier server/src/index.ts pour tester la connexion à la base de données au démarrage.
 
@@ -246,15 +238,14 @@ Mettre à jour le fichier server/src/index.ts pour tester la connexion à la bas
 
 
 ```typescript
-
 import cors from "cors";
 import "dotenv/config";
 import express from "express";
 import pool from "./database/client.js";
 import healthRouter from "./routes/health.router.js";
 
-const BLUE = "[34m";
-const RESET = "[0m";
+const BLUE = "\x1b[34m";
+const RESET = "\x1b[0m";
 
 const app = express();
 const PORT = process.env.PORT || 3310;
@@ -280,9 +271,7 @@ app.listen(PORT, async () => {
 	console.log("🔵 SERVER BACKEND");
 	console.log("=========================================");
 	console.log(`🔵 NODE_ENV : ${NODE_ENV}`);
-	console.log(
-  `🟢 Serveur démarré sur : ${BLUE}http://localhost:${PORT}${RESET}`,
-);
+	console.log(`🟢 Serveur démarré sur : ${BLUE}http://localhost:${PORT}${RESET}`);
 
 	try {
 		await pool.query("SELECT 1");
@@ -295,8 +284,9 @@ app.listen(PORT, async () => {
 });
 
 export default app;
+
 ```
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 08 - racine > Vérifier avec Biome
 Avant de lancer le serveur, s'assurer que le code est correct selon Biome.
 
@@ -310,122 +300,141 @@ npm run fix
 > appStarter@1.0.0 fix
 > biome lint --write . && biome format --write .
 
-Checked 40 files in 86ms. No fixes applied.
-Formatted 40 files in 34ms. No fixes applied.
+Checked 53 files in 86ms. No fixes applied.
+Formatted 49 files in 34ms. No fixes applied.
 ```
 🟡 Attention
 Si Biome signale des erreurs, les corriger avec npm run fix avant de continuer.
-<!-- ------------------------------------ -->
+
+<!-- ==================================== -->
 # 09 - racine > Ajouter le script launcher liveApp
-Le script liveApp vérifie Docker, construit le frontend, démarre uniquement les services décrits dans le `docker-compose.yml` du projet, initialise la base et lance les serveurs de développement. Démarrez Docker Desktop avant d'exécuter le script.
+Le script liveApp prépare la mémoire, construit le frontend, démarre Docker Desktop si besoin, lance les services décrits dans le `docker-compose.yml` du projet, initialise la base et démarre les serveurs de développement. Il n'est pas nécessaire de lancer Docker Desktop avant : le script s'en charge. Le script est prévu pour Windows (cmd.exe, taskkill, netstat).
 
-```markdown
-
-- Vérification de Docker Desktop sans arrêter d'autres services ou conteneurs
-- Attente de la disponibilité de Docker (limite et intervalle configurables par variables d'environnement)
+- Libération de la mémoire WSL (`wsl --shutdown`) avant le build, uniquement si Docker n'est pas déjà actif
 - Build du package `shared/`, puis build de la web app en mode production
-- Lancement des conteneurs Docker via docker compose up -d --build
+- Vérification de Docker Desktop, avec démarrage automatique et attente de sa disponibilité (tentatives et intervalle configurables par variables d'environnement)
+- Arrêt des conteneurs du projet (`docker compose down --remove-orphans`), sans supprimer les volumes
+- Vérification des ports 5432 et 5050 : les conteneurs Docker d'autres projets qui les occupent sont arrêtés (sans suppression)
+- Lancement des conteneurs Docker via `docker compose up -d --build`
 - Attente que PostgreSQL soit prêt à accepter les connexions
-- Initialisation du schéma de données avec npm run db:init
-- Lancement du serveur de développement (npm run dev -w server)
-- Lancement de l'application web de développement (npm run dev -w web)
-- Gestion propre de l'arrêt des processus au signal SIGINT/SIGTERM
-```
+- Initialisation du schéma de données avec `npm run db:init`
+- Lancement du serveur de développement (`npm run dev -w server`) et de l'application web (`npm run dev -w web`)
+- Gestion propre de l'arrêt des processus au signal SIGINT/SIGTERM (arbre de processus complet)
 
-Le launcher ne tue aucun processus, ne libère pas les ports de force, ne supprime pas de volumes et ne réinitialise pas WSL. Si un port configuré est déjà occupé, Docker Compose affiche l'erreur : arrêtez uniquement le service concerné vous-même ou choisissez un autre port dans les fichiers `.env`.
+Options (passer les flags avec `npm run liveApp -- <flag>`) :
+- `--reset-db` : supprime aussi les volumes du projet (base de données vidée)
+- `--free-ports` : arrête les services et processus PostgreSQL/pgAdmin Windows qui bloquent les ports (l'arrêt des services demande un terminal lancé en administrateur)
+- `--repair-wsl` : si Docker ne démarre pas, réinitialise WSL (destructif : supprime toutes les images et tous les volumes Docker)
+- `--reset-wsl` : ferme Docker Desktop et fait un `wsl --shutdown` avant le build
+
+Variables d'environnement : `PROJECT_NAME` (obligatoire), `DOCKER_DESKTOP_PATH`, `DOCKER_WAIT_ATTEMPTS`, `DOCKER_WAIT_INTERVAL_MS`, `DB_WAIT_ATTEMPTS`, `DB_WAIT_INTERVAL_MS`, `DEBUG=1` (affiche les commandes exécutées).
+
+Les conteneurs du projet sont recréés à chaque lancement, mais leurs volumes (donc la base de données) sont conservés, sauf avec `--reset-db`. L'option `--repair-wsl` supprime tout le stockage Docker (images et volumes de tous les projets) : à réserver au dernier recours. Si un port reste occupé après l'arrêt des conteneurs, le script s'arrête avec le nom du processus et son PID.
+
 ▷ Ajouter le script liveApp au package.json racine.
 
 ```bash
-
-npm pkg set scripts.liveApp="npx tsx setup/liveApp.ts"
+npm pkg set scripts.liveApp="tsx setup/liveApp.ts"
 ```
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 10 - racine > Lancer le launcher liveApp
-▷ Depuis la racine, lancer liveApppour démarrer l'environnement complet.
+▷ Depuis la racine, lancer liveApp pour démarrer l'environnement complet.
 
 ```bash
 npm run liveApp
 ```
 🔵 Exemple de sortie avec les valeurs locales par défaut
 ```text
-> appStarter@1.0.0 liveApp
+> Appstarter@1.0.0 liveApp
 > npx tsx setup/liveApp.ts
 
 ══════════════════════════════════════════════════
-🔵 LAUNCHER - liveApp
+🔵 LAUNCHER — liveApp
    Simulator live Local
 ══════════════════════════════════════════════════
-Étape 1
-🔵 Aucun nettoyage global Docker n'est effectué.
-🟢 Les autres conteneurs et volumes sont préservés.
+Étape 1/8 - 12.5%
+🔵 Libération de la mémoire WSL avant le build...
+🟡 Docker est déjà actif : wsl --shutdown ignoré (utilisez --reset-wsl pour forcer).
 ══════════════════════════════════════════════════
-Étape 2
-🔵 Vérification de Docker Desktop...
-🟡 Si Docker n'est pas actif, démarrez-le manuellement puis relancez le launcher.
-══════════════════════════════════════════════════
-Étape 3
-🔵 Vérification de l'état de Docker...
-🟡 Docker en attente (1/40)
-🟡 Docker en attente (2/40)
-🟢 Docker est opérationnel !
-══════════════════════════════════════════════════
-Étape 4
-🔵 Compilation des applications...
+Étape 2/8 - 25%
+🔵 Compilation des applications (avant Docker, pour limiter la RAM)...
 
-> appStarter@1.0.0 build:shared
+> Appstarter@1.0.0 build:shared
 > npm run build -w shared
 
-... compilation de shared ...
+
+> @Appstarter/shared@1.0.0 build
+> tsc -p tsconfig.esm.json && tsc -p tsconfig.cjs.json && node write-build-metadata.cjs
+
 
 > web@0.0.0 build
 > tsc -b && vite build
 
-vite v8.0.3 building client environment for production...
-✓ 31 modules transformed.
+vite v8.3.6 building client environment for production...
+✓ 37 modules transformed.
 computing gzip size...
-dist/index.html                   0.47 kB │ gzip:   0.30 kB
-dist/assets/index-ruwUTP7m.css   12.93 kB │ gzip:   2.93 kB
-dist/assets/index-BKR2AEY9.js   505.30 kB │ gzip: 153.28 kB
+dist/index.html                   0.68 kB │ gzip:   0.42 kB
+dist/assets/index-dxQUz1OL.css   15.84 kB │ gzip:   3.51 kB
+dist/assets/index-u2FNFJNw.js   557.39 kB │ gzip: 170.96 kB
 
-✓ built in 506ms
 [plugin builtin:vite-reporter]
 (!) Some chunks are larger than 500 kB after minification. Consider:
 - Using dynamic import() to code-split the application
 - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 402ms
+
+> web@0.0.0 postbuild
+> node scripts/prerender.mjs
+
+Prérendu : /
+Prérendu terminé : 1 route(s).
 🟢 Builds terminés avec succès
 ══════════════════════════════════════════════════
-Étape 5
+Étape 3/8 - 37.5%
+🔵 Vérification de Docker Desktop...
+🟢 Docker est déjà opérationnel !
+══════════════════════════════════════════════════
+Étape 4/8 - 50%
+🔵 Arrêt des conteneurs du projet...
+🟢 Conteneurs du projet arrêtés (autres projetspréservés).
+══════════════════════════════════════════════════
+Étape 5/8 - 62.5%
+🔵 Vérification des ports 5432, 5050...
+🟢 Ports libérés.
+══════════════════════════════════════════════════
+Étape 6/8 - 75%
 🔵 Déploiement des conteneurs...
-[+] Running 4/4
- ✔ Network appStarter_default       Created                                                      0.1s
- ✔ Volume appStarter_postgres_data  Created                                                      0.0s
- ✔ Container appStarter_db          Started                                                      0.8s
- ✔ Container appStarter_pgadmin     Started                                                      1.0s
+[+] Running 3/3
+ ✔ Network Appstarter_default    Created       0.1s
+ ✔ Container Appstarter_db       Started       0.9s
+ ✔ Container Appstarter_pgadmin  Started       1.0s
 🟢 Services démarrés
 ══════════════════════════════════════════════════
-Étape 6
+Étape 7/8 - 87.5%
 🔵 Attente de la base de données...
-🟡 Base de données indisponible (1/40)
 🟢 PostgreSQL est prêt à accepter les connexions !
 🔵 Stabilisation de la base de données...
 🔵 Initialisation du schéma de données...
 
-> appStarter@1.0.0 db:init
+> Appstarter@1.0.0 db:init
 > npx tsx server/src/database/init-db.ts
 
 
 =========================================
-🔵 INIT BASE DE DONNÉES
+🔵 DÉMARRAGE DE LA BASE
 =========================================
-Connexion PostgreSQL : <utilisateur>@<hôte>:<port>/<base>
+[+] Running 2/2
+ ✔ Container Appstarter_db       Healthy       0.5s
+ ✔ Container Appstarter_pgadmin  Healthy       3.7s
+Connexion PostgreSQL : postgres_user@localhost:5432/Appstarter
 🟢 Schéma appliqué avec succès.
 =========================================
 
 
-🟢 Pipeline validé en 42.5s
+🟢 Pipeline validé en 24.7s
 ══════════════════════════════════════════════════
-Étape 7
+Étape 8/8 - 100%
 🔵 Lancement de l'environnement Dev
 
 🔵 [Web] Démarrage...
@@ -444,8 +453,8 @@ Connexion PostgreSQL : <utilisateur>@<hôte>:<port>/<base>
 🔵 CLIENT WEB
 =========================================
 🔵 NODE_ENV : development
-🟢 Client démarré sur :  http://localhost:5173
-🟢 Proxy API vers :  http://localhost:3310
+🟢 Client démarré sur : http://localhost:5173
+🟢 Proxy API vers : http://localhost:3310
 =========================================
 
   ➜  press h + enter to show help
@@ -454,19 +463,15 @@ Connexion PostgreSQL : <utilisateur>@<hôte>:<port>/<base>
 🔵 SERVER BACKEND
 =========================================
 🔵 NODE_ENV : development
-🟢 Serveur démarré sur :  http://localhost:3310
+🟢 Serveur démarré sur : http://localhost:3310
 🟢 Base de données connectée
 =========================================
 ```
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 11 - racine > Initialisation et vérification du monorepo
 Cette étape valide l'intégrité complète du monorepo. Elle contrôle la structure des répertoires, la conformité des package.json et la connectivité des services Docker.
 
-🟡 Attention
-Lancer le script dans un second terminal pendant que le launcher tourne. Il s'agit d'un diagnostic, pas d'une suite de tests applicatifs : les scripts `test` absents sont signalés comme ignorés. Vérifier les valeurs de port affichées dans le rapport avec les fichiers `.env` si elles ont été modifiées.
-
 ```markdown
-
 - Lecture du package.json pour récupérer le nom et la version du projet
 - Vérification des versions de Node.js, npm, Biome et détection des frameworks (React, Express, TypeScript, Vite)
 - Vérification que Docker et Docker Compose sont installés
@@ -479,13 +484,13 @@ Lancer le script dans un second terminal pendant que le launcher tourne. Il s'ag
 - Détection de la structure monorepo (au moins 2 package.json)
 - Test de l'accessibilité de l'API backend sur le port `PORT` configuré dans `server/.env`
 - Vérification de la cohérence des ports entre server/.env et web/.env
-- Vérification de la cohérence de la base de données entre les configurations
-- Vérification que JWT_SECRET est robuste et que NODE_ENV est défini
+- Vérification de la cohérence du nom de la base (`PGDATABASE` dans server/.env et `POSTGRES_DB` dans le .env racine)
+- Vérification que JWT_SECRET est robuste (32 caractères minimum, sans valeur faible) et que NODE_ENV est défini
 - Vérification que .env est inclus dans .gitignore
 - Vérification que .env.sample existe
 - Vérification que CLIENT_URL pour CORS n'est pas un wildcard (*)
-- Exécution de biome check sur tous les fichiers
-- Vérification de la compilation TypeScript avec tsc --noEmit
+- Exécution de biome check sur tous les fichiers (hors README et rapport générés)
+- Vérification de la compilation TypeScript - Génération d'un rapport Markdown détaillé avec CSS intégré
 - Vérification de l'existence des scripts npm (dev, build, start)
 - Vérification des scripts npm test quand ils existent (un script absent est ignoré ; cela ne compte pas comme un test réussi)
 - Vérification que Git est initialisé (.git/ existe)
@@ -494,15 +499,24 @@ Lancer le script dans un second terminal pendant que le launcher tourne. Il s'ag
 - Génération d'un rapport Markdown détaillé avec CSS intégré
 - Génération d'un pipeline CI GitHub Actions (.github/workflows/ci.yml)
 - Création d'un README avec les résultats du rapport
+- Calcul du taux de réussite sur les tests exécutés uniquement (les tests ignorés ne comptent pas)
 ```
-▷ Ouvrir un second terminal et lancer le script de vérification depuis la racine du monorepo.
+▷ 🟡 Dans un premier terminal, lancer l'application depuis la racine du monorepo (elle doit rester active pendant la vérification).
+
+```bash
+npm run dev
+# ou
+npm run liveApp
+```
+
+▷ 🟡 Ouvrir un second terminal et lancer le script de vérification depuis la racine du monorepo.
 
 ```bash
 npx tsx setup/verify_monorepo/verify_monorepo.ts
 ```
 🔵 Info
 Un rapport détaillé est généré en Markdown dans setup/verify_monorepo/verify-report-date.md, mais aussi à la racine du monorepo pour documenter le dépôt GitHub.
-Le rapport peut être converti en PDF déjà stylé avec l'extension markdown-PDF.
+Le rapport peut être converti en PDF stylé avec l'extension Markdown PDF, à condition que `markdown-pdf.styles` pointe vers `setup/verify_monorepo/report.css` dans `.vscode/settings.json` (avec `markdown-pdf.printBackground` à `true`).
 
 🟢 Aucun contrôle diagnostique n'a échoué : le monorepo est prêt pour les vérifications manuelles et les tests applicatifs.
 
@@ -513,7 +527,7 @@ Le rapport peut être converti en PDF déjà stylé avec l'extension markdown-PD
 - Backend API : `http://localhost:<PORT>/api/health` (`PORT` vaut 3310 par défaut dans `server/.env`).
 - pgAdmin : `http://localhost:<PGADMIN_PORT>` (`PGADMIN_PORT` vaut 5050 par défaut dans le `.env` racine). Identifiants définis dans ce même fichier.
 
-🔵 Exemple de rapport avec les valeurs locales par défaut
+🔵 Sortie attendue
 ```text
 ╔═════════════════════╗
 ║ CODE QUALITY REPORT ║
@@ -641,7 +655,7 @@ Heure : 01/04/2026 14:00:00
 ℹ  DIAGNOSTIC TERMINÉ — exécutez les tests applicatifs avant de conclure
 ════════════════════════════════════════════════════════════
 ```
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 12 - racine > Sauvegarder les modifications
 ▷ Ajouter les fichiers et commiter les modifications.
 

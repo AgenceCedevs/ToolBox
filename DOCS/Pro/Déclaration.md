@@ -11,7 +11,7 @@
 9. Télécharger le justificatif
 10. Classer le justificatif
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 
 # Déclarer la TVA
 
@@ -44,5 +44,5 @@
 
 <font color=yellow>Récuperation des 3euro de la derniere declaraion  </font>
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 ## Déclarer France travail

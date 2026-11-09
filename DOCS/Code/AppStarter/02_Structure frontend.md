@@ -13,7 +13,7 @@ Les constantes stables (comme ROUTE_HOME) sont importées depuis le workspace `@
 - Un logo propre au projet s'affiche dans le Header.
 - Biome valide le code sans erreur.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 01 - web > Vérifier les dépendances
 Depuis la racine du monorepo.
 
@@ -35,7 +35,7 @@ Si la version est inférieure à 7, mettre à jour :
 npm install react-router@7 -w web
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 02 - web > Créer la structure de dossiers
 Créer l'arborescence du projet web en deux catégories :
 
@@ -48,7 +48,7 @@ Créer l'arborescence du projet web en deux catégories :
 mkdir -p web/src/components/header web/src/components/footer web/src/components/layout web/src/components/seo web/src/pages/homePage web/src/pages/notFoundPage
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 03 - web > Créer les fichiers avec touch
 Les fichiers .ts et .tsx ne doivent jamais être créés via node -e, les emojis et les regex sont corrompus en terminal.
 
@@ -69,7 +69,7 @@ touch web/src/assets/logo_app.svg
 touch web/public/favicon_app.svg
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 04 - web > src > components > footer > Remplir le composant Footer.tsx
 ▷ Ouvrir le fichier web/src/components/footer/Footer.tsx et coller le contenu suivant.
 
@@ -100,7 +100,7 @@ function Footer() {
 export default Footer;
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 05 - web > src > components > header > Remplir le composant Header.tsx
 ▷ Ouvrir le fichier web/src/components/header/Header.tsx et coller le contenu suivant.
 
@@ -137,7 +137,7 @@ export default Header;
 🔵 Info
 Le logo est importé depuis web/src/assets/logo_app.svg, créé à l'étape 03. L'attribut `alt` est vide car le nom de l'application est déjà affiché à côté : le logo est décoratif. Tant que le fichier est vide, le navigateur n'affiche aucune image : y coller le SVG du projet.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 06 - web > src > components > layout > Remplir le composant Layout.tsx
 
 Le Layout est le composant parent commun à toutes les pages. Il contient le Header, le Footer et un <Outlet /> qui rend la page active selon la route.
@@ -167,7 +167,7 @@ function Layout() {
 export default Layout;
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 07 - web > src > components > seo > Créer le composant réutilisable Seo
 
 🔵 Info
@@ -236,7 +236,7 @@ export default Seo;
 🔵 Info
 `image` peut être un chemin depuis `web/public/` ou une URL absolue. Le composant utilise `/og-image.webp` par défaut : ajouter le fichier correspondant dans `web/public/`, ou modifier cette valeur par défaut pour pointer vers une image existante. Une page peut fournir une image différente avec la propriété `image`. `ogTitle` et `ogDescription` sont facultatifs ; lorsqu'ils ne sont pas fournis, ils reprennent le titre et la description de la page.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 08 - web > src > pages > homePage > Remplir le style HomePage.css
 
 ▷ Ouvrir le fichier web/src/pages/homePage/HomePage.css et coller le contenu suivant.
@@ -1075,7 +1075,7 @@ h2 {
 }
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 09 - web > src > pages > homePage > Remplir la page HomePage.tsx
 
 ▷ Ouvrir le fichier web/src/pages/homePage/HomePage.tsx et coller le contenu suivant.
@@ -1346,7 +1346,7 @@ function HomePage() {
 export default HomePage;
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 10 - web > src > pages > notFoundPage > Remplir le style NotFoundPage.css
 
 ▷ Ouvrir le fichier web/src/pages/notFoundPage/NotFoundPage.css et coller le contenu suivant.
@@ -1485,7 +1485,7 @@ export default HomePage;
 }
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 11 - web > src > pages > notFoundPage > Remplir la page NotFoundPage.tsx
 
 ▷ Ouvrir le fichier web/src/pages/notFoundPage/NotFoundPage.tsx et coller le contenu suivant.
@@ -1527,7 +1527,7 @@ function NotFoundPage() {
 
 export default NotFoundPage;
 ```
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 12 - web > src > Mettre à jour App.tsx
 
 ▷ Ouvrir le fichier web/src/App.tsx et remplacer le contenu existant par le contenu suivant.
@@ -1547,7 +1547,7 @@ function App() {
 
 export default App;
 ```
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 13 - web > src > Remplir global.css
 
 ▷ Ouvrir le fichier web/src/global.css et coller le contenu suivant.
@@ -1813,7 +1813,7 @@ body {
 🔵 Info
 Les règles html, body, #root garantissent que l'élément root occupe toute la hauteur du viewport, ce qui est essentiel pour que le layout flexbox fonctionne correctement.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 14 - web > src > Mettre à jour main.tsx
 ▷ Ouvrir le fichier web/src/main.tsx et remplacer le contenu existant par le contenu suivant.
 
@@ -1835,7 +1835,7 @@ ReactDOM.createRoot(rootElement).render(
 	</React.StrictMode>,
 );
 ```
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 15 - web > src > Remplir router.tsx
 
 ▷ Ouvrir le fichier web/src/router.tsx et coller le contenu suivant.
@@ -1878,7 +1878,7 @@ const router = createBrowserRouter([
 
 export default router;
 ```
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 16 - web > src > Créer vite-env.d.ts
 
 Ce fichier fournit à TypeScript les types Vite, les types des variables d'environnement utilisées dans web/.env.sample et les déclarations nécessaires pour importer des images comme des URL.
@@ -1914,7 +1914,7 @@ declare module "*.svg" {
 	export default value;
 }
 ```
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 17 - web > Mettre à jour index.html
 
 Le index.html généré par Vite contient des références au logo Vite. Le remplacer par une version propre avec les métadonnées SEO de base, alimentées par les variables de web/.env définies au module 1.
@@ -1944,7 +1944,7 @@ Le index.html généré par Vite contient des références au logo Vite. Le remp
 
 Vite remplace `%VITE_APP_NAME%` à la compilation. Les métadonnées propres à chaque page sont ajoutées par le composant `Seo` après le chargement de React ; le prérendu facultatif les inscrit dans le HTML généré pour les robots qui ne lancent pas JavaScript. Cela évite d'avoir des balises génériques en double dans le navigateur. `VITE_APP_URL` doit être l'URL publique du site en production ; en développement, sa valeur dans web/.env.sample peut rester `http://localhost:5173`. Ajouter `web/public/og-image.webp` ou fournir une autre image avec la propriété `image` de `Seo`.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 18 - web > Mettre à jour tsconfig.json
 
 Le fichier tsconfig.json configure TypeScript pour le projet. Il active le mode strict, configure React, et crée un alias @/ pour importer facilement depuis le dossier src/. Il analyse uniquement les fichiers dans src sans générer de fichiers compilés.
@@ -1975,7 +1975,7 @@ Le fichier tsconfig.json configure TypeScript pour le projet. Il active le mode 
 }
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 19 - web > Mettre à jour tsconfig.node.json
 Le fichier tsconfig.node.json configure TypeScript pour les fichiers de configuration Node.js du projet. Il cible ES2023, active le mode strict, et inclut les types Node.js et Vite. Il analyse uniquement le fichier vite.config.ts sans générer de fichiers compilés.
 
@@ -1996,7 +1996,7 @@ Le fichier tsconfig.node.json configure TypeScript pour les fichiers de configur
   "include": ["vite.config.ts"]
 }
 ```
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 20 - web > Mettre à jour vite.config.ts
 Le vite.config.ts généré par le template est remplacé pour charger les variables WEB_PORT depuis la racine et le port PORT depuis server/.env, puis configurer le proxy vers le serveur Express et l'alias @ pour les imports. Les variables VITE_ du frontend restent chargées depuis web/.env par Vite.
 
@@ -2066,7 +2066,7 @@ export default defineConfig(({ mode }) => {
 	};
 });
 ```
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 21 - web > Nettoyer les fichiers du template Vite
 
 ▷ Supprimer les fichiers inutiles du template Vite, ainsi que les images par défaut.
@@ -2075,7 +2075,7 @@ export default defineConfig(({ mode }) => {
 rm -rf web/src/App.css web/src/index.css
 rm -rf web/src/assets/hero.png web/src/assets/react.svg web/src/assets/vite.svg web/public/vite.svg web/public/icons.svg
 ```
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 22 - racine > Lancer le frontend
 
 ▷ Tester l'application à l'adresse http://localhost:5173/ dans le navigateur.
@@ -2108,7 +2108,7 @@ Cette commande racine compile d'abord `shared/`, puis lance Vite dans le workspa
 
   ➜  press h + enter to show help
 ```
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 23 - web > Ajouter un prérendu HTML
 
 Une application React classique envoie surtout une coquille HTML, puis construit son contenu dans le navigateur. Pour les pages publiques dont le référencement compte, le prérendu peut produire le HTML et les métadonnées par route avant leur livraison ; c'est préférable à une coquille vide, sans garantir l'indexation par un moteur ou un service d'IA.
@@ -2127,7 +2127,7 @@ touch web/scripts/prerender.mjs
 🟡 Attention
 Dans Git Bash, `&&` arrête la suite si l'installation échoue. Ne lancez pas `npm run build -w web` tant que le script `web/scripts/prerender.mjs` n'a pas été rempli avec le code ci-dessous : un fichier vide permettrait au postbuild de réussir sans générer de HTML prérendu.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 24 - web > Remplir le script de prérendu
 
 ▷ Ouvrir web/scripts/prerender.mjs et coller le script suivant.
@@ -2316,7 +2316,7 @@ main().catch((error) => {
 
 Pour inclure une route qui n'est liée depuis aucune page, l'ajouter à `EXTRA_SEED_ROUTES`. Ajouter à `EXCLUDED_PREFIXES` les routes privées ou qui ne doivent pas être générées. Le crawler ne suit que les liens internes sans extension de fichier ; les liens externes, les ressources et les paramètres d'URL ne créent pas de nouvelles pages.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 25 - web > Vérifier le prérendu
 
 ▷ Vérifier le prérendu en lançant le build web depuis la racine.
@@ -2327,7 +2327,7 @@ npm run build -w web
 
 Vérifier que `npm ls puppeteer -w web` indique une installation dans `web`, puis que le build se termine avec `> web@... postbuild` et `Prérendu terminé`. Un avertissement Vite sur la taille d'un chunk supérieur à 500 kB n'est pas, à lui seul, un échec du build. Vérifier ensuite que `web/dist/index.html` et les fichiers tels que `web/dist/une-route/index.html` contiennent le contenu rendu et une seule balise pour chaque métadonnée fournie par `Seo`. Les routes doivent être accessibles en production avec le fichier `index.html` du dossier correspondant ; configurer l'hébergeur pour servir ces fichiers avant tout fallback SPA. Le composant React 404 n'impose pas à lui seul un statut HTTP 404 : configurer et tester le comportement 404 de l'hébergeur. Ne pas prérendre de pages privées ou de contenu personnalisé par utilisateur.
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 26 - racine > Corriger les fichiers du template Vite et lancer le lint
 
 Les fichiers générés par le template Vite, ainsi que le script de prérendu ajouté aux étapes précédentes, ne respectent pas forcément le formatage et les règles de Biome. La commande `fix` applique les corrections automatiques à tout le monorepo et signale les problèmes qui demandent une correction manuelle.
@@ -2338,7 +2338,7 @@ Les fichiers générés par le template Vite, ainsi que le script de prérendu a
 npm run fix
 ```
 
-<!-- ------------------------------------ -->
+<!-- ==================================== -->
 # 27 - racine > Sauvegarder les modifications
 ▷ Ajouter les fichiers et commiter les modifications.
 
