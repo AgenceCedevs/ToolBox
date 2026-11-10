@@ -155,15 +155,15 @@ node -e "require('fs').writeFileSync('tsconfig.json', JSON.stringify({
 
 ```bash
 mkdir -p web mobile shared/src
-cd web && npm init -y && cd ..
-cd mobile && npm init -y && npm pkg set dependencies.@appstarter/shared="*" && cd ..
+(cd web && npm init -y)
+(cd mobile && npm init -y && npm pkg set dependencies.@appstarter/shared="*")
 node -e "require('fs').writeFileSync('mobile/.env.sample', '# Expo app configuration\nEXPO_PUBLIC_APP_NAME=PENDING_APP_NAME\nEXPO_PUBLIC_API_URL=http://localhost:3310/api\n')"
 node -e "require('fs').copyFileSync('mobile/.env.sample', 'mobile/.env')"
-cd shared && npm init -y && npm pkg set name="@appstarter/shared" version="1.0.0" private=true type="module" main="./dist/cjs/index.js" module="./dist/esm/index.js" types="./dist/esm/index.d.ts" && cd ..
+(cd shared && npm init -y && npm pkg set name="@appstarter/shared" version="1.0.0" type="module" main="./dist/cjs/index.js" module="./dist/esm/index.js" types="./dist/esm/index.d.ts")
 node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('shared/package.json','utf8'));p.exports={'.':{types:'./dist/esm/index.d.ts',import:'./dist/esm/index.js',require:'./dist/cjs/index.js'}};fs.writeFileSync('shared/package.json',JSON.stringify(p,null,2))"
 node -e "const fs=require('fs');const base={target:'ES2020',strict:true,declaration:true,rootDir:'src'};fs.writeFileSync('shared/tsconfig.esm.json',JSON.stringify({compilerOptions:{...base,module:'ESNext',moduleResolution:'Bundler',outDir:'dist/esm'},include:['src/**/*']},null,2));fs.writeFileSync('shared/tsconfig.cjs.json',JSON.stringify({compilerOptions:{...base,module:'CommonJS',outDir:'dist/cjs'},include:['src/**/*']},null,2))"
 touch shared/write-build-metadata.cjs
-cd shared && npm pkg set scripts.build="tsc -p tsconfig.esm.json && tsc -p tsconfig.cjs.json && node write-build-metadata.cjs" && cd ..
+(cd shared && npm pkg set private=true --json && npm pkg set scripts.build="tsc -p tsconfig.esm.json && tsc -p tsconfig.cjs.json && node write-build-metadata.cjs")
 printf 'export { constants } from "./constants.js";\n' > shared/src/index.ts
 touch shared/src/constants.ts
 ```
@@ -895,7 +895,7 @@ const appName = rootFolderName
 	.replace(/\s+/g, " ");
 const folderName = rootFolderName.toLowerCase().replace(/[^\w]/g, "_").replace(/_+/g, "_");
 
-const TEMPLATE_SCOPE = "@appstarter/";
+const TEMPLATE_SCOPE = "@appstarter/"; const TEMPLATE_PLACEHOLDER = "{{PROJECT_NAME_LOWER}}";
 const sharedScope = `@${folderName}/`;
 const scopeExtensions = [".json", ".ts", ".tsx", ".js", ".cjs", ".mjs"];
 const scopeIgnoredFolders = ["node_modules", "dist", ".git"];
@@ -910,8 +910,8 @@ function renameSharedScope(dir: string): number {
 		}
 		if (entry.name === "package-lock.json" || !scopeExtensions.includes(path.extname(entry.name))) continue;
 		const content = fs.readFileSync(fullPath, "utf8");
-		if (!content.includes(TEMPLATE_SCOPE)) continue;
-		fs.writeFileSync(fullPath, content.split(TEMPLATE_SCOPE).join(sharedScope));
+		if (!content.includes(TEMPLATE_SCOPE) && !content.includes(TEMPLATE_PLACEHOLDER)) continue;
+		fs.writeFileSync(fullPath, content.split(TEMPLATE_SCOPE).join(sharedScope).split(TEMPLATE_PLACEHOLDER).join(folderName));
 		console.log(`   ${path.relative(process.cwd(), fullPath).replace(/\\/g, "/")} : ${TEMPLATE_SCOPE} → ${sharedScope}`);
 		count++;
 	}
@@ -2379,7 +2379,7 @@ Pour un projet déjà créé avec une ancienne configuration, lancer `npx biome 
 > appStarter@1.0.0 format
 > biome format --write .
 
-Formatted 35 files in 44ms. Fixed 19 files.
+Formatted 34 files in 143ms. Fixed 19 files.
 ```
 
 <!-- ==================================== -->
@@ -2407,6 +2407,13 @@ Corriger les erreurs de lint avant de continuer ; le formatage automatique ne r�
 
 🔵 Sortie attendue
 Biome ne signale plus aucune erreur à la fin de `npm run fix`.
+```text
+> appstarter@1.0.0 fix
+> biome lint --write . && biome format --write .
+
+Checked 35 files in 90ms. Fixed 1 file.
+Formatted 34 files in 44ms. No fixes applied.
+```
 
 <!-- ==================================== -->
 # 37 - racine > Lancer npm install pour finaliser

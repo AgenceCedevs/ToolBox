@@ -342,7 +342,7 @@ npm pkg set scripts.liveApp="tsx setup/liveApp.ts"
 ```bash
 npm run liveApp
 ```
-🔵 Exemple de sortie avec les valeurs locales par défaut
+🔵 Sortie attendue
 ```text
 > Appstarter@1.0.0 liveApp
 > npx tsx setup/liveApp.ts

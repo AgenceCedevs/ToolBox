@@ -1150,7 +1150,7 @@ function HomePage() {
 			<Seo
 				description="Découvrez une base de projet web et mobile organisée autour de React, TypeScript et des outils modernes."
 				path="/"
-				ogTitle="AppStarter - Construire un monorepo web et mobile"
+				ogTitle={`${import.meta.env.VITE_APP_NAME} - Construire un monorepo web et mobile`}
 				ogDescription="Une structure de monorepo pour démarrer des projets web et mobile avec une architecture cohérente."
 				image="/og-image.webp"
 			/>

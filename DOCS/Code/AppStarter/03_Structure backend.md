@@ -80,7 +80,7 @@ Le package.json du serveur déclare le format ES modules utilisé par la compila
 	"license": "ISC",
 	"type": "module",
 	"dependencies": {
-		"@appStarter/shared": "*",
+		"@appstarter/shared": "*",
 		"bcrypt": "latest",
 		"cloudinary": "latest",
 		"cookie-parser": "latest",
@@ -109,6 +109,11 @@ Le package.json du serveur déclare le format ES modules utilisé par la compila
 🔵 Info
 Le script `dev` lance le serveur avec rechargement automatique. Le script `build` compile `server/src/` vers `server/dist/`, et `start` exécute ensuite ce build. Le type `module` doit rester cohérent avec le `tsconfig.json` du serveur.
 
+▷ Revenir à la racine du monorepo et relancer le script update-package-name.ts pour remplacer le scope `@appstarter/` par celui du projet dans `server/package.json`.
+
+```bash
+npx tsx setup/update-package-name.ts
+```
 <!-- ==================================== -->
 # 04 - server > Mettre à jour tsconfig.json
 Le serveur nécessite sa propre configuration TypeScript, optimisée pour Node.js avec le mode `NodeNext`.
@@ -214,11 +219,9 @@ export default app;
 ```
 
 <!-- ==================================== -->
-<!-- ==================================== -->
-<!-- ==================================== -->
 # 07 - racine > Mettre à jour tsconfig.json
-🟡 Attention
-Attention, on switch à la racine !
+🟡 Attention, 🟡 Attention, 🟡 Attention
+Attention, fichier à la racine !
 
 Maintenant que server/tsconfig.json est configuré, le tsconfig.json racine doit référencer le serveur.
 
