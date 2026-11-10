@@ -13,7 +13,7 @@ Un monorepo est un seul dépôt qui contient le frontend (web/), le backend (ser
 - Les fichiers de configuration (Docker, Biome, TypeScript, variables d'environnement) sont présents et prêts.
 
 🟡 Attention
-Avant de commencer : À partir de l'étape 03, des dependence seront ajoutées aux package.json sans être installées immédiatement. Cela créera des fichiers en erreur dans l'éditeur comme tsconfig.json racine, setup/*.ts,etc.
+Avant de commencer : À partir de l'étape 03, des dépendence seront ajoutées aux package.json sans être installées immédiatement. Cela créera des fichiers en erreur dans l'éditeur comme tsconfig.json racine, setup/*.ts,etc.
 
 C'est normal et attendu ! installées à la racine du monorepo à l'étape 37 à la racine installera TOUTES les dépendances et TOUS les problèmes disparaîtront d'un coup. Ne pas s'inquiéter des erreurs rouges avant cette étape.
 
@@ -303,7 +303,7 @@ npm pkg delete scripts.test
 
 ```bash
 node --input-type=module -e 'import { writeFileSync } from "node:fs"; writeFileSync(".gitignore", "# Dependances\nnode_modules/\n\n# Environnement (les modeles restent versionnes)\n.env\n.env.*\n!.env.sample\n\n# Builds\ndist/\ndist-ssr/\ncoverage/\n*.tsbuildinfo\n\n# Logs\nlogs/\n*.log\nnpm-debug.log*\nyarn-debug.log*\nyarn-error.log*\npnpm-debug.log*\nlerna-debug.log*\n\n# Editeurs et systeme\n.vscode/*\n!.vscode/extensions.json\n.idea/\n.DS_Store\n*.suo\n*.ntvs*\n*.njsproj\n*.sln\n*.sw?\n*.local\n")'
-node --input-type=module -e "import { writeFileSync } from 'node:fs'; writeFileSync('.env.sample', '# App\nNODE_ENV=development\nPROJECT_NAME=PENDING_FOLDER_NAME\nWEB_PORT=5173\n\n# PostgreSQL\nPOSTGRES_USER=postgres_user\nPOSTGRES_PASSWORD=postgres_password\nPOSTGRES_DB=PENDING_FOLDER_NAME\nPGDATABASE=PENDING_FOLDER_NAME\nPGHOST=localhost\nPGPORT=5432\n\n# pgAdmin\nPGADMIN_EMAIL=admin_user\nPGADMIN_PASSWORD=admin_password\nPGADMIN_PORT=5050\n')"
+node --input-type=module -e "import { writeFileSync } from 'node:fs'; writeFileSync('.env.sample', '# App\nNODE_ENV=development\nPROJECT_NAME=PENDING_FOLDER_NAME\nWEB_PORT=5173\n\n# PostgreSQL\nPOSTGRES_USER=postgres_user\nPOSTGRES_PASSWORD=postgres_password\nPOSTGRES_DB=PENDING_FOLDER_NAME\nPGDATABASE=PENDING_FOLDER_NAME\nPGHOST=localhost\nPGPORT=5432\n\n# pgAdmin\nPGADMIN_EMAIL=admin@example.com\nPGADMIN_PASSWORD=admin_password\nPGADMIN_PORT=5050\n')"
 node --input-type=module -e 'import { copyFileSync, existsSync } from "node:fs"; if (!existsSync(".env")) copyFileSync(".env.sample", ".env")'
 ```
 
@@ -2373,7 +2373,7 @@ npm run format
 Cette commande modifie uniquement biome.json. Elle ne touche ni au .gitignore, ni aux fichiers .env.
 
 🔴 Erreur fréquente
-Si Biome affiche `couldn't find an ignore file`, lle .gitignoren'a pas été créé à la racine : vérifier le dossier courant avecpwd, relancer l'étape 11 depuis la racine du monorepo, puis relancer npm run format.
+Si Biome affiche `couldn't find an ignore file`, le .gitignore n'a pas été créé à la racine : vérifier le dossier courant avec pwd, relancer l'étape 11 depuis la racine du monorepo, puis relancer npm run format.
 
 🟡 Attention
 Pour un projet déjà créé avec une ancienne configuration, lancer `npx biome migrate --write`, puis vérifier que le `biome.json` racine contient l'exception `overrides` montrée à l'étape 04.
