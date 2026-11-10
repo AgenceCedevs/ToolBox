@@ -83,7 +83,11 @@ mkdir -p setup
 cat > setup/sync-biome-schema.mjs <<'EOF'
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
-if (!existsSync("biome.json")) process.exit(0);
+if (
+	!existsSync("biome.json") ||
+	!existsSync("node_modules/@biomejs/biome/package.json")
+)
+	process.exit(0);
 
 const { version } = JSON.parse(
 	readFileSync("node_modules/@biomejs/biome/package.json", "utf8"),
