@@ -48,7 +48,7 @@ git branch --list
 Récupérer le lien HTTPS du dépôt, puis :
 
 ```bash
-git remote add origin https://github.com/AgenceCedevs/appTest.git
+git remote add origin https://github.com/AgenceCedevs/appStarter.git
 git config --local credential.username AgenceCedevs
 git push -u origin main dev
 ```
@@ -94,13 +94,15 @@ Dans le Static Site, ouvrir l'onglet **Environment**, puis cliquer sur **Add var
 
 | Clé | Valeur |
 |---|---|
-| `VITE_APP_NAME` | nom du projet (ex. `appStarter`) |
+| `VITE_APP_NAME` | nom du projet (ex. `app Starter`) |
 | `VITE_APP_URL` | URL complète du site, avec `https://` (ex. `https://appstarter.onrender.com`) |
 
 - Une ligne par variable : ne jamais modifier une ligne existante pour y mettre une autre variable.
 - Pas d'espace ni de guillemets autour des valeurs.
 - La liste doit correspondre aux variables de `web/.env.sample`. Pour les retrouver : `grep -rn "import.meta.env" web/src`.
 - Cliquer sur **Save and deploy** : toute modification de variable nécessite un nouveau build.
+
+🟡 le site peut apparaitre que 1 a 2 min apres
 
 <!-- ==================================== -->
 # 10 - Render : routage SPA
@@ -152,3 +154,57 @@ git switch dev
 - `git merge dev` intègre tout le travail de `dev` dans `main`.
 - `git push` envoie `main` sur GitHub (et déclenche le déploiement de la production sur Clever Cloud (selon ta configuration)).
 - `git switch dev` te remet sur `dev`, pour ne pas travailler sur `main` par erreur.
+
+
+# ============ DÉMARRER LA NOUVELLE PAGE ============
+git switch dev
+git pull
+git switch -c feat/nouvelle-page
+
+# --- tu crées la page, puis à chaque étape ---
+git add .
+git status
+git commit -m "feat: ajout de la page nouvelle-page"
+git push -u origin feat/nouvelle-page   # -u seulement au 1er push, ensuite : git push
+
+# ============ MONTRER AU CLIENT (préprod) ============
+git switch dev
+git pull
+git merge feat/nouvelle-page
+git push
+# ne supprime PAS la branche tant que le client n'a pas validé
+
+# ============ CAS A : le client valide → production ============
+git switch main
+git pull
+git merge dev
+git push
+git switch dev
+git branch -d feat/nouvelle-page
+git push origin --delete feat/nouvelle-page   # optionnel
+
+# ============ CAS B : le client demande des modifications ============
+git switch dev
+git pull
+git switch -c fix/nouvelle-page-retours
+
+# --- tu corriges, puis ---
+git add .
+git commit -m "fix: retours client sur nouvelle-page"
+git push -u origin fix/nouvelle-page-retours
+
+git switch dev
+git pull
+git merge fix/nouvelle-page-retours
+git push
+git branch -d fix/nouvelle-page-retours
+git push origin --delete fix/nouvelle-page-retours   # optionnel
+# → le client revalide, puis CAS A
+
+# ============ CAS C : le client refuse la page ============
+git switch dev
+git pull
+git log --oneline -10                  # repère le hash du commit de merge
+git revert -m 1 <hash-du-merge>
+git push
+# la branche feat/nouvelle-page existe toujours, tu peux la reprendre plus tard

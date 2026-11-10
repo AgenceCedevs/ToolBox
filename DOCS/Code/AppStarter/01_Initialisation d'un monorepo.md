@@ -1036,7 +1036,10 @@ const __dirname = path.dirname(__filename);
 const outputFileName = "export_writings_all.md";
 const outputPath = path.join(__dirname, outputFileName);
 
+const projectRoot = process.cwd();
+
 // ── EXCLUSIONS INTELLIGENTES ──
+const excludedPaths = [path.join(projectRoot, "setup")];
 const excludedFiles = [".DS_Store", "npm-debug.log", outputFileName, "package-lock.json", ".env", ".env.sample"];
 const excludedExtensions = [".tsbuildinfo", ".log", ".png", ".jpg", ".jpeg", ".gif", ".ico", ".pdf", ".zip"];
 const excludedFolders = ["node_modules", "dist", "build", ".git", ".github", ".vscode", "public", "assets", "__pycache__", ".next", ".nuxt", "out", "coverage"];
@@ -1064,6 +1067,16 @@ function detectLanguage(file: string): string {
 function isExcluded(filePath: string): boolean {
 	const normalized = filePath.replace(/\\/g, "/");
 	const parts = normalized.split("/");
+
+	// Vérifier les chemins exclus (dossier + contenu)
+	if (
+		excludedPaths.some((excluded) => {
+			const relative = path.relative(excluded, filePath);
+			return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+		})
+	) {
+		return true;
+	}
 
 	// Vérifier les dossiers exclus
 	if (excludedFolders.some((folder) => parts.includes(folder))) {
@@ -1115,7 +1128,7 @@ function getAllFiles(dir: string): string[] {
 
 try {
 	console.log(`\n=========================\n🔵 EXPORT GLOBAL\n=========================\n`);
-	const root = process.cwd();
+	const root = projectRoot;
 	const files = getAllFiles(root)
 		.filter((f) => fs.existsSync(f) && !isExcluded(f) && path.basename(f) !== outputFileName && path.basename(f) !== path.basename(__filename))
 		.sort();
@@ -1148,6 +1161,7 @@ try {
 } catch (error) {
 	console.error(`\n🔴 ERREUR :`, (error as Error).message);
 }
+
 ```
 
 <!-- ==================================== -->
