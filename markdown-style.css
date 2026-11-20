@@ -20,6 +20,7 @@ h1 {
 	font-size: 24pt;
 	border-bottom: 3px solid #007fa6;
 	padding-bottom: 8px;
+	margin-top: 48px;
 	margin-bottom: 4px;
 }
 h2 {
@@ -29,7 +30,7 @@ h2 {
 	border-radius: 6px;
 	border: none;
 	font-size: 16pt;
-	margin-top: 28px;
+	margin-top: 48px;
 	page-break-after: avoid;
 }
 h3 {
@@ -37,8 +38,11 @@ h3 {
 	border-bottom: 1px solid #007fa6;
 	padding-bottom: 3px;
 	font-size: 13pt;
-	margin-top: 20px;
+	margin-top: 32px;
 	page-break-after: avoid;
+}
+h1 + h3 {
+	margin-top: 12px;
 }
 h4 {
 	color: #005f7c;
@@ -130,4 +134,54 @@ pre code {
 	padding: 0;
 	font-size: 10pt;
 	line-height: 1.5;
+}
+/* ===== Tableaux ===== */
+table {
+	width: 100%;
+	border-collapse: separate;
+	border-spacing: 0;
+	margin: 12px 0 20px;
+	border: 1px solid #b8dde8;
+	border-radius: 6px;
+	overflow: hidden;
+	font-size: 10.5pt;
+	page-break-inside: avoid;
+}
+table > thead > tr > th {
+	background: #007fa6;
+	color: #ffffff;
+	text-align: left;
+	font-weight: 600;
+	font-size: 10pt;
+	line-height: 1.3;
+	padding: 5px 14px;
+	border: none;
+	border-bottom: 2px solid #005f7c;
+}
+table > tbody > tr > td {
+	font-size: 10pt;
+	line-height: 1.3;
+	padding: 5px 14px;
+	border: none;
+	border-top: 1px solid #d5eaf1;
+	vertical-align: top;
+}
+
+table > tbody > tr:first-child > td {
+	border-top: none;
+}
+table > tbody > tr:nth-child(even) > td {
+	background: #e6f4f8;
+}
+table > tbody > tr:hover > td {
+	background: #cfe9f1;
+}
+table > tbody > tr > td:first-child {
+	font-weight: 600;
+	color: #005f7c;
+	white-space: nowrap;
+}
+table a {
+	font-weight: 500;
+	border-bottom: 1px dotted #007fa6;
 }
