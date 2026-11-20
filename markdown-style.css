@@ -1,3 +1,13 @@
+/*
+# Exemple de texte a définir (h1) : Très grand (environ 32px)
+## Exemple de texte a définir (h2) : Grand (environ 24px)
+### Exemple de texte a définir (h3) : Moyen (environ 19px)
+#### Exemple de texte a définir (h4) : Même taille que le texte normal (16px, en gras)
+##### Exemple de texte a définir (h5) : Plus petit que le texte normal (environ 13px, en gras)
+###### Exemple de texte a définir (h6) : Encore plus petit (environ 11px, en gras)
+Exemple de texte a définir (p) : Texte normal (16px, sans gras, et sans aucun dièse devant)
+*/
+
 body {
 	font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 	font-size: 11pt;
@@ -58,6 +68,22 @@ strong {
 a {
 	color: #007fa6;
 	text-decoration: none;
+}
+blockquote,
+body.vscode-light blockquote,
+body.vscode-dark blockquote,
+body.vscode-high-contrast blockquote {
+	background: #e6f4f8;
+	color: #005f7c;
+	border: none;
+	border-left: 4px solid #007fa6;
+	border-radius: 0 6px 6px 0;
+	padding: 6px 14px;
+	margin: 12px 0;
+	page-break-inside: avoid;
+}
+blockquote p {
+	margin: 0;
 }
 ul li::marker {
 	color: #007fa6;
